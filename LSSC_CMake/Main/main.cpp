@@ -22,7 +22,7 @@
 #include <stdlib.h>
 #include <math.h>
 
-#include "Utilities/LibImages.h"
+#include "libImages/LibImages.h"
 
 using namespace std;
 
@@ -38,8 +38,8 @@ int main(
 	}
 
 	 //! Variables initialization
-	const float sigma = atof(argv[2]);
-	const bool doBias = (bool) atof(argv[8]);
+	const float sigma = float(atof(argv[2]));
+	const bool doBias = bool(atof(argv[8]) != 0);
 
     //! Declarations
 	vector<float> im, imNoisy, imFinal, imDiff;

@@ -1,0 +1,14 @@
+CMAKE_MINIMUM_REQUIRED(VERSION 2.6)
+
+PROJECT(libImages)
+
+SET(SRC LibImages.h LibImages.cpp
+		mt19937ar.h mt19937ar.c	)
+
+ADD_LIBRARY(Images ${SRC})
+
+INCLUDE_DIRECTORIES(..)		
+
+TARGET_LINK_LIBRARIES(Images IO)
+		
+INSTALL(FILES CMakeLists.txt ${SRC} DESTINATION src/libImages)

@@ -2,40 +2,15 @@
  * Copyright (c) 2010, Nicolas Limare <nicolas.limare@cmla.ens-cachan.fr>
  * All rights reserved.
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above
- *    copyright notice, this list of conditions and the following
- *    disclaimer in the documentation and/or other materials provided
- *    with the distribution.
+ * This program is free software: you can redistribute it and/or modify
+ * it under, at your option, the terms of the GNU General Public
+ * License as published by the Free Software Foundation, either
+ * version 3 of the License, or (at your option) any later version, or
+ * the terms of the simplified BSD license.
  *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
- * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL
- * THE COPYRIGHT HOLDER BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
- * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF
- * USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
- * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
- * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT
- * OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
- * SUCH DAMAGE.
- *
- * The views and conclusions contained in the software and
- * documentation are those of the authors and should not be
- * interpreted as representing official policies, either expressed
- * or implied, of the copyright holder.
- */
-
-/**
- * @mainpage image read/write simplified interface
- *
- * README.txt:
- * @verbinclude README.txt
+ * You should have received a copy of these licenses along this
+ * program. If not, see <http://www.gnu.org/licenses/> and
+ * <http://www.opensource.org/licenses/bsd-license.html>.
  */
 
 /**
@@ -63,7 +38,7 @@
 #include <assert.h>
 
 /* option to use a local version of the libpng */
-#ifdef _LOCAL_LIBS
+#ifdef WITH_LOCAL_LIBPNG
 #include "png.h"
 #else
 #include <png.h>
@@ -77,6 +52,9 @@
 /* internal only datatype identifiers */
 #define IO_PNG_U8  0x0001       /* 8bit unsigned integer */
 #define IO_PNG_F32 0x0002       /* 32bit float */
+
+/* string tag inserted into the binary, helps tracking versions */
+char _io_png_tag[] = "using io_png " IO_PNG_VERSION;
 
 /*
  * READ
@@ -106,7 +84,7 @@ static void *read_png_abort(FILE * fp,
  * @todo don't loose 16bit info
  *
  * @param fname PNG file name, "-" means stdin
- * @param nx, ny, nc pointers to variables to be filled
+ * @param nxp, nyp, ncp pointers to variables to be filled
  *        with the number of columns, lines and channels of the image
  * @param transform a PNG_TRANSFORM to be added to the default read transforms
  * @param dtype identifier for the data type to be used for output
@@ -114,7 +92,7 @@ static void *read_png_abort(FILE * fp,
  *         or NULL if an error happens
  */
 static void *read_png_raw(const char *fname,
-                          size_t * nx, size_t * ny, size_t * nc,
+                          size_t * nxp, size_t * nyp, size_t * ncp,
                           int transform, int dtype)
 {
     png_byte png_sig[PNG_SIG_LEN];
@@ -133,7 +111,7 @@ static void *read_png_raw(const char *fname,
     size_t i, j, k;
 
     /* parameters check */
-    if (NULL == fname || NULL == nx || NULL == ny || NULL == nc)
+    if (NULL == fname || NULL == nxp || NULL == nyp || NULL == ncp)
         return NULL;
     if (IO_PNG_U8 != dtype && IO_PNG_F32 != dtype)
         return NULL;
@@ -186,9 +164,9 @@ static void *read_png_raw(const char *fname,
     png_read_png(png_ptr, info_ptr, transform, NULL);
 
     /* get image informations */
-    *nx = (size_t) png_get_image_width(png_ptr, info_ptr);
-    *ny = (size_t) png_get_image_height(png_ptr, info_ptr);
-    *nc = (size_t) png_get_channels(png_ptr, info_ptr);
+    *nxp = (size_t) png_get_image_width(png_ptr, info_ptr);
+    *nyp = (size_t) png_get_image_height(png_ptr, info_ptr);
+    *ncp = (size_t) png_get_channels(png_ptr, info_ptr);
     row_pointers = png_get_rows(png_ptr, info_ptr);
 
     /*
@@ -197,7 +175,7 @@ static void *read_png_raw(const char *fname,
      * the image is deinterlaced layer after layer
      * this generic loop also works for one single channel
      */
-    size = *nx * *ny * *nc;
+    size = *nxp * *nyp * *ncp;
     switch (dtype)
     {
     case IO_PNG_U8:
@@ -205,19 +183,19 @@ static void *read_png_raw(const char *fname,
                      (unsigned char *) malloc(size * sizeof(unsigned char))))
             return read_png_abort(fp, &png_ptr, &info_ptr);
         data = (void *) data_u8;
-        for (k = 0; k < *nc; k++)
+        for (k = 0; k < *ncp; k++)
         {
             /* channel loop */
-            data_u8_ptr = data_u8 + (size_t) (*nx * *ny * k);
-            for (j = 0; j < *ny; j++)
+            data_u8_ptr = data_u8 + (size_t) (*nxp * *nyp * k);
+            for (j = 0; j < *nyp; j++)
             {
                 /* row loop */
                 row_ptr = row_pointers[j] + k;
-                for (i = 0; i < *nx; i++)
+                for (i = 0; i < *nxp; i++)
                 {
                     /* pixel loop */
                     *data_u8_ptr++ = (unsigned char) *row_ptr;
-                    row_ptr += *nc;
+                    row_ptr += *ncp;
                 }
             }
         }
@@ -226,19 +204,19 @@ static void *read_png_raw(const char *fname,
         if (NULL == (data_f32 = (float *) malloc(size * sizeof(float))))
             return read_png_abort(fp, &png_ptr, &info_ptr);
         data = (void *) data_f32;
-        for (k = 0; k < *nc; k++)
+        for (k = 0; k < *ncp; k++)
         {
             /* channel loop */
-            data_f32_ptr = data_f32 + (size_t) (*nx * *ny * k);
-            for (j = 0; j < *ny; j++)
+            data_f32_ptr = data_f32 + (size_t) (*nxp * *nyp * k);
+            for (j = 0; j < *nyp; j++)
             {
                 /* row loop */
                 row_ptr = row_pointers[j] + k;
-                for (i = 0; i < *nx; i++)
+                for (i = 0; i < *nxp; i++)
                 {
                     /* pixel loop */
                     *data_f32_ptr++ = (float) *row_ptr;
-                    row_ptr += *nc;
+                    row_ptr += *ncp;
                 }
             }
         }
@@ -261,16 +239,16 @@ static void *read_png_raw(const char *fname,
  * @todo don't downscale 16bit images.
  *
  * @param fname PNG file name
- * @param nx, ny, nc pointers to variables to be filled with the number of
+ * @param nxp, nyp, ncp pointers to variables to be filled with the number of
  *        columns, lines and channels of the image
  * @return pointer to an allocated unsigned char array of pixels,
  *         or NULL if an error happens
  */
 unsigned char *read_png_u8(const char *fname,
-                           size_t * nx, size_t * ny, size_t * nc)
+                           size_t * nxp, size_t * nyp, size_t * ncp)
 {
     /* read the image as unsigned char */
-    return (unsigned char *) read_png_raw(fname, nx, ny, nc,
+    return (unsigned char *) read_png_raw(fname, nxp, nyp, ncp,
                                           PNG_TRANSFORM_IDENTITY, IO_PNG_U8);
 }
 
@@ -279,13 +257,13 @@ unsigned char *read_png_u8(const char *fname,
  *
  * See read_png_u8() for details.
  */
-unsigned char *read_png_u8_rgb(const char *fname, size_t * nx, size_t * ny)
+unsigned char *read_png_u8_rgb(const char *fname, size_t * nxp, size_t * nyp)
 {
     size_t nc;
     unsigned char *img;
 
     /* read the image */
-    img = (unsigned char *) read_png_raw(fname, nx, ny, &nc,
+    img = (unsigned char *) read_png_raw(fname, nxp, nyp, &nc,
                                          PNG_TRANSFORM_STRIP_ALPHA,
                                          IO_PNG_U8);
     if (NULL == img)
@@ -300,13 +278,13 @@ unsigned char *read_png_u8_rgb(const char *fname, size_t * nx, size_t * ny)
         unsigned char *ptr_r, *ptr_g, *ptr_b, *ptr_end;
 
         /* resize the image */
-        img = realloc(img, 3 * *nx * *ny * sizeof(unsigned char));
+        img = realloc(img, 3 * *nxp * *nyp * sizeof(unsigned char));
 
         /* gray->RGB conversion */
         ptr_r = img;
-        ptr_end = ptr_r + *nx * *ny;
-        ptr_g = img + *nx * *ny;
-        ptr_b = img + 2 * *nx * *ny;
+        ptr_end = ptr_r + *nxp * *nyp;
+        ptr_g = img + *nxp * *nyp;
+        ptr_b = img + 2 * *nxp * *nyp;
         while (ptr_r < ptr_end)
         {
             *ptr_g++ = *ptr_r;
@@ -321,13 +299,13 @@ unsigned char *read_png_u8_rgb(const char *fname, size_t * nx, size_t * ny)
  *
  * See read_png_u8() for details.
  */
-unsigned char *read_png_u8_gray(const char *fname, size_t * nx, size_t * ny)
+unsigned char *read_png_u8_gray(const char *fname, size_t * nxp, size_t * nyp)
 {
     size_t nc;
     unsigned char *img;
 
     /* read the image */
-    img = (unsigned char *) read_png_raw(fname, nx, ny, &nc,
+    img = (unsigned char *) read_png_raw(fname, nxp, nyp, &nc,
                                          PNG_TRANSFORM_STRIP_ALPHA,
                                          IO_PNG_U8);
     if (NULL == img)
@@ -348,16 +326,16 @@ unsigned char *read_png_u8_gray(const char *fname, size_t * nx, size_t * ny)
          * Y = 0.212671 * R + 0.715160 * G + 0.072169 * B
          */
         ptr_r = img;
-        ptr_g = img + *nx * *ny;
-        ptr_b = img + 2 * *nx * *ny;
+        ptr_g = img + *nxp * *nyp;
+        ptr_b = img + 2 * *nxp * *nyp;
         ptr_gray = img;
-        ptr_end = ptr_gray + *nx * *ny;
+        ptr_end = ptr_gray + *nxp * *nyp;
         while (ptr_gray < ptr_end)
             *ptr_gray++ = (unsigned char) (6969 * *ptr_r++
                                            + 23434 * *ptr_g++
                                            + 2365 * *ptr_b++) / 32768;
         /* resize and return the image */
-        img = realloc(img, *nx * *ny * sizeof(unsigned char));
+        img = realloc(img, *nxp * *nyp * sizeof(unsigned char));
         return img;
     }
 }
@@ -371,15 +349,16 @@ unsigned char *read_png_u8_gray(const char *fname, size_t * nx, size_t * ny)
  * 16bit images are also downscaled to 8bit before conversion.
  *
  * @param fname PNG file name
- * @param nx, ny, nc pointers to variables to be filled with the number of
+ * @param nxp, nyp, ncp pointers to variables to be filled with the number of
  *        columns, lines and channels of the image
  * @return pointer to an allocated unsigned char array of pixels,
  *         or NULL if an error happens
  */
-float *read_png_f32(const char *fname, size_t * nx, size_t * ny, size_t * nc)
+float *read_png_f32(const char *fname, size_t * nxp, size_t * nyp,
+                    size_t * ncp)
 {
     /* read the image as float */
-    return (float *) read_png_raw(fname, nx, ny, nc,
+    return (float *) read_png_raw(fname, nxp, nyp, ncp,
                                   PNG_TRANSFORM_IDENTITY, IO_PNG_F32);
 }
 
@@ -388,13 +367,13 @@ float *read_png_f32(const char *fname, size_t * nx, size_t * ny, size_t * nc)
  *
  * See read_png_f32() for details.
  */
-float *read_png_f32_rgb(const char *fname, size_t * nx, size_t * ny)
+float *read_png_f32_rgb(const char *fname, size_t * nxp, size_t * nyp)
 {
     size_t nc;
     float *img;
 
     /* read the image */
-    img = (float *) read_png_raw(fname, nx, ny, &nc,
+    img = (float *) read_png_raw(fname, nxp, nyp, &nc,
                                  PNG_TRANSFORM_STRIP_ALPHA, IO_PNG_F32);
     if (NULL == img)
         /* error */
@@ -408,13 +387,13 @@ float *read_png_f32_rgb(const char *fname, size_t * nx, size_t * ny)
         float *ptr_r, *ptr_g, *ptr_b, *ptr_end;
 
         /* resize the image */
-        img = realloc(img, 3 * *nx * *ny * sizeof(float));
+        img = realloc(img, 3 * *nxp * *nyp * sizeof(float));
 
         /* gray->RGB conversion */
         ptr_r = img;
-        ptr_end = ptr_r + *nx * *ny;
-        ptr_g = img + *nx * *ny;
-        ptr_b = img + 2 * *nx * *ny;
+        ptr_end = ptr_r + *nxp * *nyp;
+        ptr_g = img + *nxp * *nyp;
+        ptr_b = img + 2 * *nxp * *nyp;
         while (ptr_r < ptr_end)
         {
             *ptr_g++ = *ptr_r;
@@ -429,13 +408,13 @@ float *read_png_f32_rgb(const char *fname, size_t * nx, size_t * ny)
  *
  * See read_png_f32() for details.
  */
-float *read_png_f32_gray(const char *fname, size_t * nx, size_t * ny)
+float *read_png_f32_gray(const char *fname, size_t * nxp, size_t * nyp)
 {
     size_t nc;
     float *img;
 
     /* read the image */
-    img = (float *) read_png_raw(fname, nx, ny, &nc,
+    img = (float *) read_png_raw(fname, nxp, nyp, &nc,
                                  PNG_TRANSFORM_STRIP_ALPHA, IO_PNG_F32);
     if (NULL == img)
         /* error */
@@ -455,16 +434,16 @@ float *read_png_f32_gray(const char *fname, size_t * nx, size_t * ny)
          * Y = 0.212671 * R + 0.715160 * G + 0.072169 * B
          */
         ptr_r = img;
-        ptr_g = img + *nx * *ny;
-        ptr_b = img + 2 * *nx * *ny;
+        ptr_g = img + *nxp * *nyp;
+        ptr_b = img + 2 * *nxp * *nyp;
         ptr_gray = img;
-        ptr_end = ptr_gray + *nx * *ny;
+        ptr_end = ptr_gray + *nxp * *nyp;
         while (ptr_gray < ptr_end)
             *ptr_gray++ = (float) (6969 * *ptr_r++
                                    + 23434 * *ptr_g++
                                    + 2365 * *ptr_b++) / 32768;
         /* resize and return the image */
-        img = realloc(img, *nx * *ny * sizeof(float));
+        img = realloc(img, *nxp * *nyp * sizeof(float));
         return img;
     }
 }
@@ -645,7 +624,7 @@ static int write_png_raw(const char *fname, const void *data,
                 for (i = 0; i < nx; i++)
                 {
                     /* pixel loop */
-                    tmp = floor(*data_f32_ptr++ + .5);
+                    tmp = floor(*data_f32_ptr++ + .5f);
                     *idata_ptr = (png_byte) (tmp < 0. ? 0. :
                                              (tmp > 255. ? 255. : tmp));
                     idata_ptr += nc;
