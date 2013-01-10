@@ -21,8 +21,10 @@
 #include <iostream>
 #include <stdlib.h>
 #include <math.h>
+#include <ctime>
 
 #include "libImages/LibImages.h"
+#include "libLSSC/LibLSSC.h"
 
 using namespace std;
 
@@ -45,22 +47,26 @@ int main(
 	vector<float> im, imNoisy, imFinal, imDiff;
 	vector<float> imBias, imDiffBias;
 	ImageSize imSize;
-    const bool verbose = false;
+    const bool verbose = true;
 
     //! Read Image
     if (loadImage(argv[1], im, imSize, verbose) != EXIT_SUCCESS) {
-        return EXIT_FAILURE;
+		return EXIT_FAILURE;
     }
 
 	//! Add noise
     addNoise(im, imNoisy, sigma, verbose);
+	
+	cout << imFinal.size() << endl;
 
     //! LSSC
     for (unsigned c = 0; c < imSize.nChannels; c++) {
         for (unsigned i = 0; i < imSize.height; i++) {
             for (unsigned j = 0; j < imSize.width; j++) {
-                imFinal[c * imSize.wh + i * imSize.width + j] =
-                    imNoisy[c * imSize.wh + i * imSize.width + j];
+				imFinal.push_back(imNoisy[c * imSize.wh + i * imSize.width + j]);
+				imDiff.push_back(imNoisy[c * imSize.wh + i * imSize.width + j]);
+				imBias.push_back(imNoisy[c * imSize.wh + i * imSize.width + j]);
+				imDiffBias.push_back(imNoisy[c * imSize.wh + i * imSize.width + j]);
             }
         }
     }
@@ -101,7 +107,7 @@ int main(
     }
     if (verbose) {
         cout << "done." << endl;
-    }
+	}
 
     //! Exit the Main Function
     return EXIT_SUCCESS;
