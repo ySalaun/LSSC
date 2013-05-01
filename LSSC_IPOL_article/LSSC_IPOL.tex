@@ -1,0 +1,224 @@
+%-------------------------------------------------------------------------------
+% IPOL article about Non-local Sparse Models for Image Restoration
+% by Yohann Salaun &Marc Lebrun
+% February 2013
+%-------------------------------------------------------------------------------
+\documentclass{ipol}
+\usepackage{amssymb}
+\usepackage{amsmath}
+\usepackage{dsfont}
+\usepackage{algorithm2e}
+\usepackage{bm}
+
+% commands for dictionary/patches...
+\newcommand{\psize}{m}   
+\newcommand{\dsize}{k}  
+\newcommand{\dict}{\textbf{D}}  
+\newcommand{\code}{\bm{\alpha}}  
+\newcommand{\pnorm}{p}
+% commands for noisy/denoised picture
+\newcommand{\Denoi}{X}  
+\newcommand{\denoi}{x}
+\newcommand{\Noi}{Y}
+\newcommand{\noi}{y}
+% commands for LARS
+\newcommand{\mua}{\bm{\mu}_{\mathcal{A}}}
+\newcommand{\da}{\bm{D}_{\mathcal{A}}}
+\newcommand{\Aa}{A_{\mathcal{A}}}
+\newcommand{\una}{\mathds{1}_{\mathcal{A}}}
+\newcommand{\ua}{\bm{u}_{\mathcal{A}}}
+\newcommand{\clars}{\textbf{c}}
+\newcommand{\A}{\mathcal{A}}
+% usual commands
+\newcommand{\RR}{\mathbb{R}}
+\newcommand{\Rn}{\mathbb{R}^n}
+\newcommand{\argmin}{\text{argmin}}
+
+\ipolSetTitle{LSSC}
+\ipolSetAuthors{Yohann Salaun$^1$ \&Marc Lebrun$^2$}
+\ipolSetAffiliations{%
+$^1$ Polytechnique, France (\texttt{yohann.salaun@polytechnique.org})\\
+$^2$ CMLA, ENS Cachan, France (\texttt{marc.lebrun@cmla.ens-cachan.fr})}
+
+\begin{document}
+
+%-------------------------------------------------------------------------------
+\begin{abstract}
+
+\end{abstract} 
+
+%-------------------------------------------------------------------------------
+\section{Overview}
+
+
+%-------------------------------------------------------------------------------
+\section{Theoritical Description}
+
+\subsection{ Notations}
+
+In order to keep coherence with \cite{LSSC}, the notations used are the same.
+A picture of $n$ pixels is seen as a column vector in $\Rn$. The noisy picture is noted $\noi$ and the denoised one $\denoi$. The $i$-th pixel of x is noted $\denoi[i]$ and the patch centered in $\denoi[i]$ and of size $\psize$ is noted $\denoi_i$.
+
+\subsection{ Learned Sparse Coding}
+
+The idea behind this method is to assume that the denoised picture is a signal that can be approximated by a sparse linear combinations of elements from a basis set. The basis set is called a dictionary $\dict \in \RR^{\psize \times \dsize}$ and is composed of $\dsize$ elements. The denoised patches are then computed from $\dict$ with:\\
+\begin{equation}
+	min_{\code\in \RR^\dsize} ||\code||_\pnorm \ \ s.t. \ \ ||\noi_i  - \dict \code||^2_2 \leqslant \epsilon
+	\label{sparseDict}
+\end{equation}
+$\dict \code$ is the estimate of the denoised patch and $||\code||_\pnorm $ is a regularization term that impose sparsity for $\code$.\\ 
+$\pnorm$ is usually 0 or 1. Eq. \ref{sparseDict} becomes NP-hard to solve when $\pnorm=0$ and a greedy algorithm such as Orthogonal Matching Pursuit \cite{OMP} can give an approximation. With $\pnorm=1$, the problem is convex and solved efficiently with the LARS algorithm \cite{LARS}. Experimental observations \cite{l0l1} have shown that the learning part is better with $\pnorm=1$ and the recomposition part with $\pnorm=0$.\\
+ $\epsilon$ can be chosen according to the value of the estimated standard deviation of the noise.
+
+\subsection {Simultaneous Sparse Coding}
+
+
+%-------------------------------------------------------------------------------
+\section{Algorithm Description}
+
+\subsection{ Algorithm Overview }
+
+The first part consists in initializing a dictionnary that will denoise roughly the picture.\\
+Once the picture is denoised a first time, a clustering is made in order to regroup similar patches for further treatment.\\
+Then, iteratively for each clusters, the dictionnary is updated using simultaneous sparse coding and the cluster is denoised.
+
+\subsection{Dictionnary Initialization}
+
+The initial dictionnary is first learned offline on the 10 000 images of the PASCAL VOC'07 database using the  online dictionnary learning procedure of \cite{onlineLearning}. This procedure is then used on the noisy picture in order to improve the dictionnary efficiency.\\
+In fact, only a fixed number $T$ of patches in the picture are used to update the dictionnary. However they are chosen so that they are independently and identically distributed in the picture.\\
+The algorithm corresponds then to the minimization of eq.\ref{sparseDict} on the $T$ patches with the $l_1$ norm using the LARS \cite{LARS} algorithm.\\
+
+\begin{algorithm}[H]
+
+\SetLine
+\textbf{Input} : number of iterations \textbf{T},  i.i.d. sampling of \textbf{T} patches of the noisy picture \textbf{Y}$_T$, initial dictionnary \dict$^0$ $\in \RR^{\psize \times \dsize}$, regularization parameter $\lambda$ \\
+\textbf{Output} : learned dictionnary \dict \\
+\textbf{Initialization} : \textbf{B}$^0 \in \RR^{\dsize \times \dsize} \leftarrow 0$,  \textbf{C}$^0 \in \RR^{\psize \times \dsize} \leftarrow 0$ \\
+	\For{ t = 1..\textbf{T}}{
+		\textbf{\noi}$_t$ = \textbf{\Noi}$_T$[t]\\
+		Sparse coding: compute with LARS algorithm:
+\[
+		\textbf{$\code$}^t = \argmin_{\code \in \RR^\dsize} \frac{1}{2}||\textbf{\noi}^t - \textbf{\dict}^{t-1} \code||^2_2 + \lambda ||\code||_1
+\]
+		\textbf{B}$^t \leftarrow \textbf{B}^{t-1} + \code^t \code^{t T}$\\
+		\textbf{C}$^t \leftarrow \textbf{C}^{t-1} + \textbf{\noi}^t \code^{t T}$\\
+		Update dictionnary from \dict$^{t-1}$ to \dict$^{t}$ so that:
+\[
+		\dict^{t}= \argmin_{\dict \in\RR^{\psize \times \dsize}} \frac{1}{t} \sum_{i=1}^t (\frac{1}{2}|\textbf{\noi}^i - \dict \code^i||^2_2 + \lambda ||\code^i||_1)
+\]
+}
+\Return \dict$^{T}$
+
+\caption{Online Dictionnary Learning}
+
+\end{algorithm}
+
+\begin{algorithm}[H]
+
+\SetLine
+\textbf{Input} : dictionary \dict = [\textbf{d}$^1$, ... , \textbf{d}$^\dsize$] $\in \mathbb{R}^{\psize \times \dsize}$, noisy patch \textbf{\noi}, regularization parameter $\lambda$\\
+\textbf{Output} : minimal argument $\code \in \RR^k$\\
+\textbf{Initialization} : $\mua \in \RR^k \leftarrow 0$, $\code \in \RR^k \leftarrow 0$\\
+	\For{ i = 1..\psize}{
+		$\clars \in \RR^{\dsize} \leftarrow \dict^T (\noi - \mua)$\\
+		$C \in \RR^+ \leftarrow \max_{j=1..\psize}(|\clars_j|)$ \\
+		$\A \leftarrow \{ j \text{ s.t. } |\clars_j| = C\}$\\
+		$\da \in \RR^{\psize \times |\A|}\leftarrow \left( ... s_j\textbf{d}_j ...\right)$ where $s_j = \text{sgn}(\clars_j)$\\
+		$\ua \in \RR^{|\A|} \leftarrow \Aa\da\left(\da^T\da\right)^{-1}\una$ where $\Aa = \frac{1}{\sqrt{\una^T \left(\da^T\da\right)^{-1}\una}}$ and $\una^T = (1,...,1) \in \RR^{|\A|}$\\
+		
+	}
+	
+\caption{LARS algorithm}
+
+\end{algorithm}
+
+\begin{algorithm}[H]
+
+\SetLine
+\textbf{Input} :input dictionnary \dict = [\textbf{d}$^1$, ... , \textbf{d}$^\dsize$] $\in \mathbb{R}^{\psize \times \dsize}$, \\ \textbf{B} = [\textbf{b}$^1$, ... , \textbf{b}$^\dsize$] $ \in \mathbb{R}^{\dsize \times \dsize}$,  \textbf{C} = [\textbf{c}$^1$, ... , \textbf{c}$^\dsize$]$ \in \mathbb{R}^{\psize \times \dsize}$\\
+\textbf{Output} : updated dictionnary \textbf{\dict} \\
+\Repeat{convergence}{
+	\For{ i = 1..\dsize}{
+		update the $j^{th}$ column:
+\[
+		\textbf{u}^{j}\leftarrow \frac{1}{\textbf{B}(j,j)} (\textbf{c}^{j} -\dict\textbf{b}^{j}) + \textbf{d}^{j}
+\]
+\[
+		\textbf{d}^{j}\leftarrow \frac{1}{\max(||\textbf{u}^{j}||_2, 1)}\textbf{u}^{j}
+\]
+	}
+}
+
+\Return \dict
+
+\caption{Dictionnary Update}
+
+\end{algorithm}
+
+%-------------------------------------------------------------------------------
+\section*{Gloassary}
+
+
+
+%-------------------------------------------------------------------------------
+\section*{Image Credits}
+
+\includegraphics[height=2em]{ipol_logo} \copyright\ IPOL (there's no
+need to credit this image, here is used as an example.)
+
+%-------------------------------------------------------------------------------
+\section{References}
+
+\begin{thebibliography}{9}
+
+\bibitem{LARS}
+	B. Efron, T. Hastie, I. Johnstone, and R. Tibshirani
+	\emph{Least angle regression}. 
+	Ann. Statist.,
+	32(2):407–499,
+	2004.
+
+\bibitem{onlineLearning}
+	J.Mairal, F. Bach, J. Ponce, and G. Sapiro
+	\emph{Online dictionary learning for sparse coding}.
+	ICML,
+	2009.
+
+\bibitem{LSSC}
+	J. Mairal, F. Bach, J. Ponce, G. Sapiro and A. Zisserman
+	\emph{ Non-local Sparse Models for Image Restoration}.
+	International Conference on Computer Vision,
+	2009.
+
+\bibitem{thesis}
+	J. Mairal
+	\emph{ Représentations parcimonieuses en apprentissage statistique, traitement d’image et
+vision par ordinateur}.
+	PhD thesis,
+	2010.
+
+\bibitem{OMP}
+	S. Mallat and Z. Zhang
+ 	\emph{Matching pursuit in a timefrequency dictionary}.
+	IEEE T. SP,
+	41(12):3397–3415,
+	1993.
+
+\bibitem{LARS}
+	B. Efron, T. Hastie, I. Johnstone, and R. Tibshirani
+	\emph{ Least angle regression}.
+	Ann. Statist.,
+	32(2):407–499,
+	2004.
+
+\bibitem{l0l1}
+	M. Elad and M. Aharon
+	\emph{Image denoising via sparse and redundant representations over learned dictionaries}.
+	IEEE T.
+	IP, 54(12):3736–3745,
+	2006.
+
+\end{thebibliography}
+
+\end{document}
+%-------------------------------------------------------------------------------
