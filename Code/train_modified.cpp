@@ -1,4 +1,11 @@
 /// Auxiliary function for lasso 
+/// solve min_{ alpha } | | alpha | | _1 s . t . | | x-Dalpha | | _2^2 <= lambda
+/// @brief
+/// @param DtR = Dtx
+/// @param G = Gram Matrix = DtD
+/// @param Gs, Ga, invGs, u, coeffs, ind, work, normX seems to be references that are filled in the programm below
+/// @param mode ==> 2 = L2ERROR ==> solve min_{ alpha } | | alpha | | _1 s . t . | | x-Dalpha | | _2^2 <= lambda
+/// @param pos ==> positivity constraint
 template <typename T>
 void coreLARS2(Vector<T>& DtR, const AbstractMatrix<T>& G,
 				Matrix<T>& Gs,
@@ -9,7 +16,7 @@ void coreLARS2(Vector<T>& DtR, const AbstractMatrix<T>& G,
 				Vector<int>& ind,
 				Matrix<T>& work,
 				T& normX,
-				const constraint_type mode,
+				//const constraint_type mode, ==> not needed cause only L2ERROR mode
 				const T constraint,
 				const bool pos,
 				T* path, int length_path) {
@@ -18,192 +25,194 @@ void coreLARS2(Vector<T>& DtR, const AbstractMatrix<T>& G,
 	const int L = MIN(LL,K);
 	if (length_path <= 1) length_path=4*L;
 
-   coeffs.setZeros();
-   ind.set(-1);
+	coeffs.setZeros();
+	ind.set(-1);
 
-   T* const pr_Gs = Gs.rawX();
-   T* const pr_invGs = invGs.rawX();
-   T* const pr_Ga = Ga.rawX();
-   T* const pr_work = work.rawX();
-   T* const pr_u = u.rawX();
-   T* const pr_DtR = DtR.rawX();
-   T* const pr_coeffs = coeffs.rawX();
-   int* const pr_ind = ind.rawX();
+	// rawX ==> modifiable ref of the data
+	T* const pr_Gs = Gs.rawX();
+	T* const pr_invGs = invGs.rawX();
+	T* const pr_Ga = Ga.rawX();
+	T* const pr_work = work.rawX();
+	T* const pr_u = u.rawX();
+	T* const pr_DtR = DtR.rawX();
+	T* const pr_coeffs = coeffs.rawX();
+	int* const pr_ind = ind.rawX();
 
-   // Find the most correlated element
-   int currentInd = pos ? DtR.max() : DtR.fmax();
-   if (mode == PENALTY && abs(DtR[currentInd]) < constraint) return;
-   if (mode == L2ERROR && normX < constraint) return;
-   bool newAtom=true;
+	// Find the most correlated element ==> c_j in LARS article
+	// fmax ==> max in magnitude, seems to be max(abs())
+	int currentInd = pos ? DtR.max() : DtR.fmax();
+	
+	// why issue if normX < constraint ?
+	if (normX < constraint) return;
+	
+	// begin by adding a new atom
+	bool newAtom = true;
+	
+	// iteration parameters
+	int i;
+	int iter=0;
+	// loop
+	// add one atom at each iteration except when gone too far and need to come back
+	// stop when the criterion is no more checked
+	for (i = 0; i<L; ++i) {
+		++iter;
+		// new atom, update Ga, Gs, invGs
+		if (newAtom) {
+			pr_ind[i] = currentInd;
+			// j-th column of Gram Matrix where j is the current index
+			// Ga = DatDa where Da is the dictionnary with only selected index
+			G.extract_rawCol(pr_ind[i],pr_Ga+i*K);
+			// what is Gs ?
+			// seems to be triangular sup version of Ga
+			for (int j = 0; j<=i; ++j){
+				pr_Gs[i*LL+j]=pr_Ga[i*K+pr_ind[j]];
+			}
+			// Update inverse of Gs
+			if (i == 0) {
+				pr_invGs[0]=T(1.0)/pr_Gs[0];
+			} else {
+				// not seen in details...
+				cblas_symv<T>(CblasColMajor,CblasUpper,i,T(1.0),
+								pr_invGs,LL,pr_Gs+i*LL,1,T(0.0),pr_u,1);
+				const T schur = T(1.0)/(pr_Gs[i*LL+i]-cblas_dot<T>(i,pr_u,1,pr_Gs+i*LL,1));
+				pr_invGs[i*LL+i]=schur;
+				cblas_copy<T>(i,pr_u,1,pr_invGs+i*LL,1);
+				cblas_scal<T>(i,-schur,pr_invGs+i*LL,1);
+				cblas_syr<T>(CblasColMajor,CblasUpper,i,schur,pr_u,1,
+							pr_invGs,LL);
+			}
+		}
+		// Compute the path direction 
+		// pr work[j] = sgn(c_j)
+		for (int j = 0; j<=i; ++j){
+			pr_work[j]= pr_DtR[pr_ind[j]] > 0 ? T(1.0) : T(-1.0);
+		}
+		// what does it do ???
+		cblas_symv<T>(CblasColMajor,CblasUpper,i+1,T(1.0),pr_invGs,LL,
+					pr_work,1,T(0.0),pr_u,1);
+		
+		// Compute the step on the path
+		T step_max = INFINITY;
+		int first_zero = -1;
+		for (int j = 0; j<=i; ++j) {
+			T ratio = -pr_coeffs[j]/pr_u[j];
+			if (ratio > 0 && ratio <= step_max) {
+				step_max=ratio;
+				first_zero=j;
+			}
+		}
+		
+		T current_correlation = abs<T>(pr_DtR[pr_ind[0]]);
+		cblas_gemv<T>(CblasColMajor,CblasNoTrans,K,i+1,T(1.0),pr_Ga,
+						K,pr_u,1,T(0.0),pr_work+2*K,1);
+		cblas_copy<T>(K,pr_work+2*K,1,pr_work+K,1);
+		cblas_copy<T>(K,pr_work+2*K,1,pr_work,1);
 
-   int i;
-   int iter=0;
-   T thrs = 0;
-   for (i = 0; i<L; ++i) {
-	  ++iter;
-	  if (newAtom) {
-		 pr_ind[i]=currentInd;
-	 //    cerr << "Add " << currentInd << endl;
-		 G.extract_rawCol(pr_ind[i],pr_Ga+i*K);
-		 for (int j = 0; j<=i; ++j)
-			pr_Gs[i*LL+j]=pr_Ga[i*K+pr_ind[j]];
+		for (int j = 0; j<=i; ++j) {
+			pr_work[pr_ind[j]]=INFINITY;
+			pr_work[pr_ind[j]+K]=INFINITY;
+		}
+		for (int j = 0; j<K; ++j) {
+			pr_work[j] = ((pr_work[j] < INFINITY) && (pr_work[j] > T(-1.0))) ? (pr_DtR[j]+current_correlation)/(T(1.0)+pr_work[j]) : INFINITY;
+		}
+		
+		for (int j = 0; j<K; ++j) {
+			pr_work[j+K] = ((pr_work[j+K] < INFINITY) && (pr_work[j+K] < T(1.0))) ? (current_correlation-pr_DtR[j])/(T(1.0)-pr_work[j+K]) : INFINITY;
+		}
+		
+		if (pos) {
+			for (int j = 0; j<K; ++j) {
+				pr_work[j]=INFINITY;
+			}
+		}
+		
+		int index = cblas_iamin<T>(2*K,pr_work,1);
+		T step = pr_work[index];
 
-		 // Update inverse of Gs
-		 if (i == 0) {
-			pr_invGs[0]=T(1.0)/pr_Gs[0];
-		 } else {
-			cblas_symv<T>(CblasColMajor,CblasUpper,i,T(1.0),
-				  pr_invGs,LL,pr_Gs+i*LL,1,T(0.0),pr_u,1);
-			const T schur =
-			   T(1.0)/(pr_Gs[i*LL+i]-cblas_dot<T>(i,pr_u,1,pr_Gs+i*LL,1));
-			pr_invGs[i*LL+i]=schur;
-			cblas_copy<T>(i,pr_u,1,pr_invGs+i*LL,1);
-			cblas_scal<T>(i,-schur,pr_invGs+i*LL,1);
-			cblas_syr<T>(CblasColMajor,CblasUpper,i,schur,pr_u,1,
-				  pr_invGs,LL);
-		 }
-	  }
+		// Choose next element
+		currentInd = index % K;
 
-	  // Compute the path direction 
-	  for (int j = 0; j<=i; ++j)
-		 pr_work[j]= pr_DtR[pr_ind[j]] > 0 ? T(1.0) : T(-1.0);
-	  cblas_symv<T>(CblasColMajor,CblasUpper,i+1,T(1.0),pr_invGs,LL,
-			pr_work,1,T(0.0),pr_u,1);
+		// compute the coefficients of the polynome representing normX^2
+		T coeff1 = 0;
+		for (int j = 0; j<=i; ++j){
+			coeff1 += pr_DtR[pr_ind[j]] > 0 ? pr_u[j] : -pr_u[j];
+		}
+		T coeff2 = 0;
+		for (int j = 0; j<=i; ++j){
+			coeff2 += pr_DtR[pr_ind[j]]*pr_u[j];
+		}
+		T coeff3 = normX-constraint;
+		T step_max2;
+		
+		/// L2ERROR
+		const T delta = coeff2*coeff2-coeff1*coeff3;
+		step_max2 = delta < 0 ? INFINITY : (coeff2-sqrt(delta))/coeff1;
+		step_max2 = MIN(current_correlation,step_max2);
+		
+		step = MIN(MIN(step,step_max2),step_max);
+		if (step == INFINITY) break; // stop the path
+		// Update coefficients
+		cblas_axpy<T>(i+1,step,pr_u,1,pr_coeffs,1);
 
-	  // Compute the step on the path
-	  T step_max = INFINITY;
-	  int first_zero = -1;
-	  for (int j = 0; j<=i; ++j) {
-		 T ratio = -pr_coeffs[j]/pr_u[j];
-		 if (ratio > 0 && ratio <= step_max) {
-			step_max=ratio;
-			first_zero=j;
-		 }
-	  }
- //     PRINT_F(step_max)
-
-	  T current_correlation = abs<T>(pr_DtR[pr_ind[0]]);
-	  cblas_gemv<T>(CblasColMajor,CblasNoTrans,K,i+1,T(1.0),pr_Ga,
-			K,pr_u,1,T(0.0),pr_work+2*K,1);
-	  cblas_copy<T>(K,pr_work+2*K,1,pr_work+K,1);
-	  cblas_copy<T>(K,pr_work+2*K,1,pr_work,1);
-
-	 for (int j = 0; j<=i; ++j) {
-		 pr_work[pr_ind[j]]=INFINITY;
-		 pr_work[pr_ind[j]+K]=INFINITY;
-	  }
-	  for (int j = 0; j<K; ++j) {
-		 pr_work[j] = ((pr_work[j] < INFINITY) && (pr_work[j] > T(-1.0))) ? (pr_DtR[j]+current_correlation)/(T(1.0)+pr_work[j]) : INFINITY;
-	  }
- //     work.print("work");
-	  for (int j = 0; j<K; ++j) {
-		 pr_work[j+K] = ((pr_work[j+K] < INFINITY) && (pr_work[j+K] < T(1.0))) ? (current_correlation-pr_DtR[j])/(T(1.0)-pr_work[j+K]) : INFINITY;
-	  }
- //     work.print("work");
-
-	  if (pos) {
-		 for (int j = 0; j<K; ++j) {
-			pr_work[j]=INFINITY;
-		 }
-	  }
- //     work.print("work");
- //     coeffs.print("coeffs");
-	  int index = cblas_iamin<T>(2*K,pr_work,1);
-	  T step = pr_work[index];
-
-	  // Choose next element
-	  currentInd = index % K;
-
-	  // compute the coefficients of the polynome representing normX^2
-	  T coeff1 = 0;
-	  for (int j = 0; j<=i; ++j)
-		 coeff1 += pr_DtR[pr_ind[j]] > 0 ? pr_u[j] : -pr_u[j];
-	  T coeff2 = 0;
-	  for (int j = 0; j<=i; ++j)
-		 coeff2 += pr_DtR[pr_ind[j]]*pr_u[j];
-	  T coeff3 = normX-constraint;
-
-
-	  T step_max2;
-	  if (mode == PENALTY) {
-		 step_max2 = current_correlation-constraint;
-	  } else if (mode == L2ERROR) {
-		 /// L2ERROR
-		 const T delta = coeff2*coeff2-coeff1*coeff3;
-		 step_max2 = delta < 0 ? INFINITY : (coeff2-sqrt(delta))/coeff1;
-		 step_max2 = MIN(current_correlation,step_max2);
-	  } else {
-		 /// L1COEFFS
-		 step_max2 = coeff1 < 0 ? INFINITY : (constraint-thrs)/coeff1;
-		 step_max2 = MIN(current_correlation,step_max2);
-	  }
-	  step = MIN(MIN(step,step_max2),step_max);
-	  if (step == INFINITY) break; // stop the path
-
-	  // Update coefficients
-	  cblas_axpy<T>(i+1,step,pr_u,1,pr_coeffs,1);
-
-	  if (pos) {
-		 for (int j = 0; j<i+1; ++j)
-			if (pr_coeffs[j] < 0) pr_coeffs[j]=0;
-	  }
-
-	  // Update correlations
-	  cblas_axpy<T>(K,-step,pr_work+2*K,1,pr_DtR,1);
-
-	  // Update normX
-	  normX += coeff1*step*step-2*coeff2*step;
-
-	  // Update norm1
-	  thrs += step*coeff1;
-
-	  if (path) {
-		 for (int k = 0; k<=i; ++k) 
-			path[iter*K+ind[k]]=pr_coeffs[k];
-	  }
-
-	  // Choose next action
-
-	  if (step == step_max) {
-	  //   cerr << "Remove " << pr_ind[first_zero] << endl;
-		 /// Downdate, remove first_zero
-		 /// Downdate Ga, Gs, invGs, ind, coeffs
-		 for (int j = first_zero; j<i; ++j) {
-			cblas_copy<T>(K,pr_Ga+(j+1)*K,1,pr_Ga+j*K,1);
-			pr_ind[j]=pr_ind[j+1];
-			pr_coeffs[j]=pr_coeffs[j+1];
-		 }
-		 pr_ind[i]=-1;
-		 pr_coeffs[i]=0;
-		 for (int j = first_zero; j<i; ++j) {
-			cblas_copy<T>(first_zero,pr_Gs+(j+1)*LL,1,pr_Gs+j*LL,1);
-			cblas_copy<T>(i-first_zero,pr_Gs+(j+1)*LL+first_zero+1,1,
-				  pr_Gs+j*LL+first_zero,1);
-		 }
-		 const T schur = pr_invGs[first_zero*LL+first_zero];
-		 cblas_copy<T>(first_zero,pr_invGs+first_zero*LL,1,pr_u,1);
-		 cblas_copy<T>(i-first_zero,pr_invGs+(first_zero+1)*LL+first_zero,LL,
-			   pr_u+first_zero,1);
-		 for (int j = first_zero; j<i; ++j) {
-			cblas_copy<T>(first_zero,pr_invGs+(j+1)*LL,1,pr_invGs+j*LL,1);
-			cblas_copy<T>(i-first_zero,pr_invGs+(j+1)*LL+first_zero+1,1,
-				  pr_invGs+j*LL+first_zero,1);
-		 }
-		 cblas_syr<T>(CblasColMajor,CblasUpper,i,T(-1.0)/schur,
-			   pr_u,1,pr_invGs,LL);
-		 newAtom=false;
-		 i=i-2;
-	} else {
-		 newAtom=true;
+		if (pos) {
+			for (int j = 0; j<i+1; ++j)
+				if (pr_coeffs[j] < 0) pr_coeffs[j]=0;
+		}
+		
+		// Update correlations
+		cblas_axpy<T>(K,-step,pr_work+2*K,1,pr_DtR,1);
+		
+		// Update normX
+		normX += coeff1*step*step-2*coeff2*step;
+		
+		if (path) {
+			for (int k = 0; k<=i; ++k){
+				path[iter*K+ind[k]]=pr_coeffs[k];
+			}
+		}
+		
+		// Choose next action
+		// case 1: when need to go back on the path cause of sign issues <== check
+		// case 2: next index, new atom
+		if (step == step_max) {
+		/// Downdate, remove first_zero
+		/// Downdate Ga, Gs, invGs, ind, coeffs
+			for (int j = first_zero; j<i; ++j) {
+				cblas_copy<T>(K,pr_Ga+(j+1)*K,1,pr_Ga+j*K,1);
+				pr_ind[j]=pr_ind[j+1];
+				pr_coeffs[j]=pr_coeffs[j+1];
+			}
+			pr_ind[i]=-1;
+			pr_coeffs[i]=0;
+			for (int j = first_zero; j<i; ++j) {
+				cblas_copy<T>(first_zero,pr_Gs+(j+1)*LL,1,pr_Gs+j*LL,1);
+				cblas_copy<T>(i-first_zero,pr_Gs+(j+1)*LL+first_zero+1,1,
+								pr_Gs+j*LL+first_zero,1);
+			}
+			const T schur = pr_invGs[first_zero*LL+first_zero];
+			cblas_copy<T>(first_zero,pr_invGs+first_zero*LL,1,pr_u,1);
+			cblas_copy<T>(i-first_zero,pr_invGs+(first_zero+1)*LL+first_zero,LL,
+							pr_u+first_zero,1);
+			for (int j = first_zero; j<i; ++j) {
+				cblas_copy<T>(first_zero,pr_invGs+(j+1)*LL,1,pr_invGs+j*LL,1);
+				cblas_copy<T>(i-first_zero,pr_invGs+(j+1)*LL+first_zero+1,1,
+								pr_invGs+j*LL+first_zero,1);
+			}
+			cblas_syr<T>(CblasColMajor,CblasUpper,i,T(-1.0)/schur,
+							pr_u,1,pr_invGs,LL);
+			newAtom=false;
+			// why i-2 ? i-1 ??
+			i=i-2;
+		} else {
+			newAtom=true;
+		}
+		if ((iter >= length_path-1) || abs(step) < 1e-15 ||
+				step == step_max2 || (normX < 1e-15) ||
+				(i == (L-1)) ||
+				(mode == L2ERROR && normX - constraint < 1e-15)) {
+			break;
+		}
 	}
-	if ((iter >= length_path-1) || abs(step) < 1e-15 ||
-			step == step_max2 || (normX < 1e-15) ||
-			(i == (L-1)) ||
-			(mode == L2ERROR && normX - constraint < 1e-15) ||
-			(mode == L1COEFFS && (constraint-thrs < 1e-15))) {
-		break;
-	}
-   }
 }
 
 template <typename T>
@@ -448,13 +457,8 @@ void Trainer<T>::train(const Data<T>& X, const ParamDictLearn<T>& param) {
 			//X.refCol(index,Xj);
 			X.getData(Xj,index);
 			if (param.whiten) {
-				if (param.pattern) {
-					Vector<T> mean(4);
-					Xj.whiten(mean,param.pattern);
-				} else {
-					Xj.whiten(X.V());
+				Xj.whiten(X.V());
 				}
-			}
 			_D.multTrans(Xj,DtRj);
 			Matrix<T>& Gs = GsT[numT];
 			Matrix<T>& Ga = GaT[numT];
@@ -644,7 +648,7 @@ void Trainer<T>::train(const Data<T>& X, const ParamDictLearn<T>& param) {
                      ((_itercount+i)*batchsize) > 10000) {
 					_D.refCol(k,di);
 					di.setZeros();
-				}
+					}
 				}
 			}
 		}
