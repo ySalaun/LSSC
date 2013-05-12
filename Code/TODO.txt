@@ -1,0 +1,11 @@
+open mp ==> je ne connais pas
+
+vérifier avec mairal si algo thèse correspond
+si ormp meme que dans ksvd
+
+prélever ormp de ksvd
+
+proprifier le clustering
+
+voir sormp ==> très différent ormp ?
+voir group lasso 
