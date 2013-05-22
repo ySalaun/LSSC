@@ -1,3 +1,251 @@
+template <typename T>
+void coreLARS(Vector<T>& Rdnv, Vector<T>& Xdnv, Vector<T>& Av,
+      Vector<T>& uv, Vector<T>& sigv, Vector<T>& avv, Vector<T>& RUnv,
+      Matrix<T>& Unm, Matrix<T>& Undsm, Matrix<T>& Gsm,
+      Matrix<T>& Gsam, Matrix<T>& workm, Matrix<T>& Rm, 
+      const AbstractMatrix<T>& Gm,T& normX, 
+      Vector<int>& indv,Vector<T>& coeffsv,const T constraint,
+      const bool ols,const bool pos, constraint_type mode,
+      T* path, int length_path) {
+   if (mode == L2ERROR && normX < constraint) return;
+
+   const int LL = Gsm.n();
+   const int K = Gsm.m();
+   const int L = MIN(LL,K);
+   if (length_path <= 1) length_path=4*L;
+   // permit unsafe fast low level access
+   T* const Rdn = Rdnv.rawX();
+   T* const Xdn = Xdnv.rawX();
+   T* const A = Av.rawX();
+   T* const u = uv.rawX();
+   T* const sig = sigv.rawX();
+   T* const av = avv.rawX();
+   T* const RUn = RUnv.rawX();
+   T* const Un = Unm.rawX();
+   T* const Unds = Undsm.rawX();
+   T* const Gs = Gsm.rawX();
+   T* const Gsa = Gsam.rawX();
+   T* const work = workm.rawX();
+   //T* const G = Gm.rawX();
+   T* const R = Rm.rawX();
+   int* ind = indv.rawX();
+   T* coeffs = coeffsv.rawX();
+
+   coeffsv.setZeros();
+   indv.set(-1);
+
+   if (ols) Xdnv.copy(Rdnv);
+   int currentInd= pos ? Rdnv.max() : Rdnv.fmax();
+   bool newAtom=true;
+   T Cmax;
+   int iter=1;
+   T thrs = 0.0;
+
+   int* const ind_orig = ind;
+   T* const coeffs_orig = coeffs;
+
+   int j;
+   for (j = 0; j<L; ++j) {
+      if (newAtom) {
+         ind[j]=currentInd;
+
+         Cmax = abs<T>(Rdn[currentInd]);
+         sig[j] = SIGN(Rdn[currentInd]);
+
+         for (int k = 0; k<=j; ++k) Un[j*L+k]=0.0;
+         Un[j*L+j]=1.0;
+         Gm.extract_rawCol(currentInd,Gs+K*j);
+         for (int k = 0; k<j; ++k) Gs[K*j+ind[k]] *= sig[k];
+         if (sig[j] < 0) {
+            Rdn[currentInd]=-Rdn[currentInd];
+            if (ols) Xdn[currentInd]=-Xdn[currentInd];
+            cblas_scal<T>(K,sig[j],Gs+K*j,1);
+            cblas_scal<T>(j+1,sig[j],Gs+currentInd,K);
+         }
+         cblas_copy<T>(j+1,Gs+currentInd,K,Gsa+j*L,1);
+         for (int k = 0; k<j; ++k) Gsa[k*L+j]=Gsa[j*L+k];
+
+         // <d_j,d_i>
+         cblas_copy<T>(j,Gsa+j*L,1,Unds+j,L);
+         // <U_j final,d_i>
+         cblas_trmv<T>(CblasColMajor,CblasUpper,CblasTrans,CblasNonUnit,
+               j+1,Un,L,Unds+j,L);
+         // norm2
+         T norm2=Gsa[j*L+j];
+         for (int k = 0; k<j; ++k) norm2 -= Unds[k*L+j]*Unds[k*L+j];
+         if (norm2 < 1e-15) {
+            ind[j]=-1;
+      //      cerr << "bad exit" << endl;
+            break;
+         }
+      
+      //   int iter2 = norm2 < 0.5 ? 2 : 1;
+      //   for(int k = 0; k<iter2; ++k) {
+      //      for (int l = 0; l<j; ++l) {
+      //         T scal=-cblas_dot<T>(j+1-l,Un+j*L+l,1,Unds+l*L+l,1);
+      //         cblas_axpy<T>(l+1,scal,Un+l*L,1,Un+j*L,1);
+      //      }
+      //   }
+         Un[j*L+j]=-T(1.0);
+         cblas_copy<T>(j,Unds+j,L,Un+j*L,1);
+         cblas_trmv<T>(CblasColMajor,CblasUpper,CblasNoTrans,CblasNonUnit,j,Un,L,Un+j*L,1);
+
+         /// Un is the orthogonalized vectors in the D basis
+         T invNorm=1.0/sqrt(norm2);
+         cblas_scal<T>(j+1,-invNorm,Un+j*L,1);
+         Unds[j*L+j]=cblas_dot<T>(j+1,Un+j*L,1,Gsa+j*L,1);
+      }
+
+      for (int k = 0; k<=j; ++k) u[k]=T(1.0);
+      cblas_trmv<T>(CblasColMajor,CblasUpper,CblasTrans,CblasNonUnit,
+            j+1,Un,L,u,1);
+
+      T a = T(1.0)/cblas_nrm2<T>(j+1,u,1);
+
+      cblas_trmv<T>(CblasColMajor,CblasUpper,CblasNoTrans,CblasNonUnit,
+            j+1,Un,L,u,1);
+      cblas_scal<T>(j+1,a,u,1);
+
+      cblas_gemv<T>(CblasColMajor,CblasNoTrans,K,j+1,T(1.0),Gs,K,u,1,T(0.0),A,1);
+
+      T potentNorm=0.0;
+      if (!ols) {
+         for (int k = 0; k<=j; ++k)  potentNorm += Rdn[ind[k]]*u[k];
+      }
+
+      if (pos) {
+         for (int k = 0; k<K; ++k) {
+            T diff = a-A[k];
+            work[k]= diff <= 0 ? INFINITY : (Cmax-Rdn[k])/diff;
+         }
+         for (int k = 0; k<=j; ++k) {
+            work[ind[k]]=INFINITY; 
+         }
+         for (int k = 0; k<K; ++k) 
+            if (work[k] <=0) work[k]=INFINITY;
+         currentInd =cblas_iamin<T>(K,work,1);
+      } else {
+         memset(work,0,2*K*sizeof(T));
+         for (int k = 0; k<=j; ++k) {
+            const int index=2*ind[k];
+            work[index]=INFINITY; 
+            work[index+1]=INFINITY; 
+         }
+         for (int k = 0; k<K; ++k) {
+            const int index=2*k;
+            if (!work[index]) {
+               const T diff1=a-A[k];
+               work[index]= diff1 <= 0 ? INFINITY : (Cmax-Rdn[k])/diff1;
+               const T diff2=a+A[k];
+               work[index+1]=diff2 <= 0 ? INFINITY : (Cmax+Rdn[k])/diff2;
+            }
+         }
+         currentInd =cblas_iamin<T>(2*K,work,1);
+      }
+      T gamma=work[currentInd];
+      T gammaMin=0;
+      int minBasis=0;
+
+      //if (j == L-1) gamma=potentNorm;
+
+      if (mode == PENALTY) {
+         gamma=MIN(gamma,(Cmax-constraint)/a);
+      }
+
+//      if (j > 0) {
+         vDiv<T>(j+1,coeffs,u,work);
+         cblas_scal<T>(j+1,-T(1.0),work,1);
+         /// voir pour petites valeurs
+         for (int k=0; k<=j; ++k) 
+            if (coeffs[k]==0 || work[k] <=0) work[k]=INFINITY;
+         minBasis=cblas_iamin<T>(j+1,work,1);
+         gammaMin=work[minBasis];
+         if (gammaMin < gamma) gamma=gammaMin;
+ //     }
+
+      if (mode == L1COEFFS) {
+         T Tu = 0.0;
+         for (int k = 0; k<=j; ++k) Tu += u[k];
+
+         if (Tu > EPSILON) 
+            gamma= MIN(gamma,(constraint-thrs)/Tu);
+         thrs+=gamma*Tu;
+      }
+
+      // compute the norm of the residdual
+
+      if (ols == 0) {
+         const T t = gamma*gamma - 2*gamma*potentNorm;
+         if (t > 0 || isnan(t) || isinf(t)) {
+      //      cerr << "bad bad exit" << endl;
+     //       cerr << t << endl;
+            ind[j]=-1;
+            break;
+         }
+         normX += t;
+      } else {
+         // plan the last orthogonal projection
+         if (newAtom) {
+            RUn[j]=0.0;
+            for (int k = 0; k<=j; ++k) RUn[j] += Xdn[ind[k]]*
+               Un[j*L+k];
+            normX -= RUn[j]*RUn[j];
+         }
+      }
+
+      // Update the coefficients
+      cblas_axpy<T>(j+1,gamma,u,1,coeffs,1);
+
+      if (pos) {
+         for (int k = 0; k<j+1; ++k)
+            if (coeffs[k] < 0) coeffs[k]=0;
+      }
+
+      cblas_axpy<T>(K,-gamma,A,1,Rdn,1);
+      if (!pos) currentInd/= 2;
+      if (path) {
+         for (int k = 0; k<=j; ++k) 
+            path[iter*K+ind[k]]=coeffs[k]*sig[k];
+      }
+
+      if (gamma == gammaMin) {
+         downDateLasso<T>(j,minBasis,normX,ols,pos,Rdnv,ind,coeffs,sigv,
+               avv,Xdnv, RUnv, Unm, Gsm, Gsam,Undsm,Rm);
+         newAtom=false;
+         Cmax=abs<T>(Rdn[ind[0]]);
+         --j;
+      } else {
+         newAtom=true;
+      }
+      ++iter;
+
+      if (mode == PENALTY) {
+         thrs=abs<T>(Rdn[ind[0]]);
+      }
+
+      if ((j == L-1) || 
+            (mode == PENALTY && (thrs - constraint < 1e-15)) ||
+            (mode == L1COEFFS && (thrs - constraint > -1e-15)) || 
+            (newAtom && mode == L2ERROR && (normX - constraint < 1e-15)) ||
+            (normX < 1e-15) ||
+            (iter >= length_path)) {
+     //       cerr << "exit" << endl;
+     //       PRINT_F(thrs)
+     //       PRINT_F(constraint)
+     //       PRINT_F(normX)
+         break;
+      }
+
+   }
+   if (ols) {
+      cblas_copy<T>(j+1,RUn,1,coeffs,1);
+      cblas_trmv<T>(CblasColMajor,CblasUpper,CblasNoTrans,CblasNonUnit,
+            j+1,Un,L,coeffs,1);
+   }
+   vMul<T>(j+1,coeffs,sig,coeffs);
+};
+
+
 /// Auxiliary function for lasso 
 /// solve min_{ alpha } | | alpha | | _1 s . t . | | x-Dalpha | | _2^2 <= lambda
 /// @brief
