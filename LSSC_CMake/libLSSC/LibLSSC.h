@@ -9,17 +9,26 @@
  * version. You should have received a copy of this license along
  * this program. If not, see <http://www.gnu.org/licenses/>.
  */
+
 #ifndef LIB_LSSC_H_INCLUDED
 #define LIB_LSSC_H_INCLUDED
 
+#include <stdlib.h>
+#include <vector>
+
+#include "Main\params.h"
+#include "utilities.h"
+
 /**
- * @brief Structure containing size informations of an image.
+ * @brief Update the dictionnary with the l1 norm
  *
- * @param width     : width of the image;
- * @param height    : height of the image;
- * @param nChannels : number of channels in the image;
- * @param wh        : equal to width * height. Provided for convenience;
- * @param whc       : equal to width * height * nChannels. Provided for convenience.
+ * @param io_dict : table that contains the dictionary coefficients;
+ * @param i_noisy : noisy picture;
+ * @param p_nPatch : number of iid patches used for the update;
+ * @param params : global parameters.
+ *
+ * @return
  **/
+void trainL1(vector<float> &io_dict, vector<float> &i_noisy, unsigned p_nPatch, Parameters &params);
 
 #endif // LIB_LSSC_H_INCLUDED

@@ -2,7 +2,7 @@ CMAKE_MINIMUM_REQUIRED(VERSION 2.6)
 
 PROJECT(Main)
 
-SET(SRC main.cpp
+SET(SRC main.cpp params.h
 		)
 
 ADD_EXECUTABLE(Main ${SRC})

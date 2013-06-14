@@ -21,14 +21,34 @@
 
 using namespace std;
 
-/**
- * @brief Load image, check the number of channels.
- *
- * @param p_name : name of the image to read;
- * @param o_im : vector which will contain the image : R, G and B concatenated;
- * @param o_imSize : will contain the size of the image;
- * @param p_verbose : if true, print some informations.
- *
- * @return EXIT_SUCCESS if the image has been loaded, EXIT_FAILURE otherwise.
- **/
+void trainL1(vector<float> &io_dict, vector<float> &i_noisy, unsigned p_nPatch, Parameters &params){
+	// matrices used for the dictionnary update
+	vector<float> A(params.k*params.k, 0.f);
+	vector<float> B(params.m*params.k, 0.f);
+
+	// sparse coefficients of the dictionnary
+	vector<float> alpha(params.k, 0.f);
+
+	// generation of p_nPatch iid patches 
+	vector<float> iidPatches(p_nPatch, 0.f);
+	// TODO
+
+	// initialize patch vector
+	vector<float> patch(params.sPatch, 0.f);
+
+	for(unsigned i = 0; i < p_nPatch; ++i){
+		// compute patch vector
+		// TODO
+		
+		// LARS
+		// TODO
+
+		add_xyT(A, alpha, alpha);
+		add_xyT(B, patch, alpha);
+
+		// Update
+		// TODO
+	}
+}
+
     

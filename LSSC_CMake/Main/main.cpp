@@ -10,7 +10,6 @@
  * this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-
 /**
  * @file main.cpp
  * @brief main function.
@@ -60,6 +59,9 @@ int main(
 	cout << imFinal.size() << endl;
 
     //! LSSC
+
+
+
     for (unsigned c = 0; c < imSize.nChannels; c++) {
         for (unsigned i = 0; i < imSize.height; i++) {
             for (unsigned j = 0; j < imSize.width; j++) {

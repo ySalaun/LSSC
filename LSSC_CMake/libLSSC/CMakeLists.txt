@@ -2,7 +2,7 @@ CMAKE_MINIMUM_REQUIRED(VERSION 2.6)
 
 PROJECT(libLSSC)
 
-SET(SRC LibLSSC.h LibLSSC.cpp)
+SET(SRC LibLSSC.h LibLSSC.cpp utilities.h utilities.cpp)
 
 ADD_LIBRARY(LSSC ${SRC})
 
