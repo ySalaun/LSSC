@@ -29,7 +29,7 @@ using namespace std;
  * @brief Auxiliary function for lasso
  *      solve min_{ alpha } | | alpha | | _1 s . t . | | x-Dalpha | | _2^2 <= lambda
  *
- * @param io_DtR : D'x
+ * @param io_DtR : D'x ==> seems there is no need to be a output param
  * @param i_G : Gram Matrix = D'D
  * @param Gs, Ga, invGs, u, coeffs, ind, work, normX seems to be references that are filled in the programm below
  * @param pos : positivity constraint

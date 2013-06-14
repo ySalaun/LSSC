@@ -1,0 +1,352 @@
+**************************************************************************
+Rappel du pipeline et pointeur en utilisant la toolbox SPAMS
+
+A) apprendre le dictionnaire avec l1
+   => fichier dicts.h,  fonction Trainer<T>::train
+B) debruiter l'image avec l0  
+   => fichier decomp.h, fonction coreORMP,  ou omp
+C) clustering des patches sur l'image estimee
+   => cf vieux mail d'il y a quelques mois
+D) re-apprentissage du dictionnaire avec norme mixte l1/l2
+   => peut être implémenté en utilisant la fonction coreGroupIST ou ist_groupLasso  de decomp.h
+   => note que l'influence de cette etape est tres faible sur le resultat final, et tres couteuse en temps de calcul.
+E) debruiter avec l0/infty   (non-convexe). 
+   => coreSOMP   ou somp
+
+**************************************************************************
+FONCTION PRINCIPALE:
+
+template <typename T>
+inline void Image<T>::denoise6(const T sigma, Matrix<T>& D, const Image<T>& orig,
+      const int n,
+      const T C1b, const T C2, const T J, const T J2, const T thrs,
+      const int window,
+      const int num_threads, const int iter) {
+      Image<T> noisy;
+   bool pattern=false;
+   T C1=abs<T>(C1b);
+   const T C = C2;
+   std::ifstream f;
+   static T param_C[10000];
+   char str[13];
+   sprintf(str,"misc/C%d.data",static_cast<int>(C));
+   f.open(str);
+   if (!f) {
+      sprintf(str,"../misc/C%d.data",static_cast<int>(C));
+      f.open(str);
+   }
+   if (!f) {
+      printf("Problem while opening C file\n");
+      return;
+   }
+   for (int i = 0; i<10000; ++i) {
+      f >> param_C[i];
+   }
+   f.close();
+
+   static T param_C1[10000];
+   char str[13];
+   sprintf(str,"misc/C%d.data",static_cast<int>(C1));
+   f.open(str);
+   if (!f) {
+      sprintf(str,"../misc/C%d.data",static_cast<int>(C1));
+      f.open(str);
+   }
+   if (!f) {
+      printf("Problem while opening C file\n");
+      return;
+   }
+   for (int i = 0; i<10000; ++i) {
+      f >> param_C1[i];
+   }
+   f.close();
+   noisy.copy(*this);
+   this->setDataVariables(n);
+   const T eps = param_C1[MIN(9999,_m)]*param_C1[MIN(9999,_m)]*sigma*sigma*_m;
+   const T eps1 = eps;
+   const int batch_size=static_cast<int>(floor(256*((num_threads-1)/2+1)));
+   int JJ = 0;
+   if (J != 0) {
+      if (J > 0)  {
+         JJ = static_cast<int>(ceil(J*static_cast<T>(_n)/batch_size))+1;
+         printf("Number of patches processed : %d\n",JJ*batch_size);
+      } else {
+         JJ = static_cast<int>(floor(J));
+      }
+   }
+   Trainer<T> trainer(D,eps,batch_size,num_threads);
+   if (JJ != 0)
+      trainer.train(*this,JJ,L2ERROR,true,1,pattern);
+   Matrix<T> Dold;
+   Dold.copy(D);
+   trainer.getD(D);
+   this->denoise4(sigma,D,orig,n,eps1,num_threads,pattern);
+
+    this->setDataVariables(n);
+    for (int i = 0; i<iter; ++i)
+      this->denoise6b(sigma,D,noisy,orig,trainer,n,J2,param_C,thrs,window,num_threads,pattern);
+}
+
+FONCTION SECONDAIRE 1:
+
+template <typename T>
+inline void Image<T>::denoise4(const T sigma, Matrix<T>& D,
+      const Image<T>& orig, const int n, const T eps,
+      const int num_threads, const bool pattern) {
+   int NUM_THREADS=1;
+#ifdef _OPENMP
+   NUM_THREADS=num_threads;
+   omp_set_num_threads(NUM_THREADS);
+   omp_set_nested(0);
+   omp_set_dynamic(0);
+#endif
+   Timer time_global;
+   time_global.start();
+   Image<T> I2(_w,_h,_V);
+   I2.setZeros();
+   const int numPatchesX =_h-n+1;
+   const int numPatchesY =_w-n+1;
+   const int numPatches = numPatchesX*numPatchesY;
+   const int sizePatch=n*n*_V;
+   const int K=D.n();
+   if (sizePatch != D.m()) {
+      cerr << "Bad dictionary" << endl;
+      return;
+   }
+   const int L = MIN(K,sizePatch);
+   Vector<T>* XT=new Vector<T>[NUM_THREADS];
+   Vector<T>* scoresT=new Vector<T>[NUM_THREADS];
+   Vector<T>* normT=new Vector<T>[NUM_THREADS];
+   Vector<T>* tmpT=new Vector<T>[NUM_THREADS];
+   Vector<T>* RdnT=new Vector<T>[NUM_THREADS];
+   Vector<T>* RUnT=new Vector<T>[NUM_THREADS];
+   Vector<int>* indT=new Vector<int>[NUM_THREADS];
+   Matrix<T>* UnT=new Matrix<T>[NUM_THREADS];
+   Matrix<T>* UndnT=new Matrix<T>[NUM_THREADS];
+   Matrix<T>* UndsT=new Matrix<T>[NUM_THREADS];
+   Matrix<T>* GsT=new Matrix<T>[NUM_THREADS];
+   for (int i = 0; i<NUM_THREADS; ++i) {
+      scoresT[i].resize(K);
+      normT[i].resize(K);
+      tmpT[i].resize(K);
+      RdnT[i].resize(K);
+      RUnT[i].resize(L);
+      indT[i].resize(L);
+      UnT[i].resize(L,L);
+      UnT[i].setZeros();
+      UndnT[i].resize(K,L);
+      UndsT[i].resize(L,L);
+      GsT[i].resize(K,L);
+      XT[i].resize(sizePatch);
+   }
+   int i;
+   Matrix<T> G;
+   D.XtX(G);
+#pragma omp parallel for private(i)
+   for (i = 0; i<numPatches; ++i) {
+#ifdef _OPENMP
+      int numT=omp_get_thread_num();
+#else
+      int numT=0;
+#endif
+      const int py = i / numPatchesX;
+      const int px = i-py*numPatchesX;
+      Vector<T>& X = XT[numT];
+      Vector<T> mean(pattern ? 4 :_V);
+      this->getPatch(X,px,py,n);
+      X.whiten(mean,pattern);
+      T normX = X.nrm2sq();
+      Vector<T>& Rdn=RdnT[numT];
+      Vector<int>& ind=indT[numT];
+      Vector<T>& RUn=RUnT[numT];
+      ind.set(-1);
+      D.multTrans(X,Rdn);
+      coreORMP(scoresT[numT],normT[numT],tmpT[numT],UnT[numT],UndnT[numT],UndsT[numT],
+            GsT[numT],Rdn,G,ind,RUn,eps, normX);
+      X.setZeros();
+      for (int j = 0; j<L; ++j) {
+         Vector<T> d;
+         if (ind[j] == -1) break;
+         D.refCol(ind[j],d);
+         X.add(d,RUn[j]);
+      }
+      X.unwhiten(mean,pattern);
+      I2.addPatch(X,px,py,n);
+   }
+   const int maw= MIN(_w-n+1,n);
+   const int mah= MIN(_h-n+1,n);
+   for (int i = 0; i<_w; ++i) {
+      int num1 = MIN(MIN(maw,i+1),_w-i);
+      for (int j = 0; j<_h; ++j) {
+         int num2 = MIN(MIN(mah,j+1),_h-j);
+         int num=num1*num2;
+         for (int k = 0; k<_V; ++k) {
+            I2(j,i,k) /= static_cast<T>(num);
+         }
+      }
+   }
+
+   delete[](XT);
+   delete[](scoresT);
+   delete[](normT);
+   delete[](tmpT);
+   delete[](RdnT);
+   delete[](RUnT);
+   delete[](indT);
+   delete[](UnT);
+   delete[](UndnT);
+   delete[](UndsT);
+   delete[](GsT);
+   I2.clip();
+   printf("\t\t\tPSNR : %g\n",I2.psnr(orig));
+   this->copy(I2);
+   time_global.stop();
+   time_global.printElapsed();
+}
+
+FONCTION SECONDAIRE 2
+
+template <typename T>
+inline void Image<T>::denoise6b(const T sigma, Matrix<T>& D, Image<T>& noisy, const Image<T>& orig, Trainer<T>& trainer,
+      const int n, const T J,
+      const T* param_C, const T thrsb,
+      const int window,
+      const int num_threads, const bool pattern) {
+
+   const T thrs = abs<T>(thrsb);
+
+   Timer time;
+   time.start();
+   PRINT_F(param_C[_m])
+      PRINT_F(J)
+      const int batch_size=static_cast<int>(floor(256*((num_threads-1)/2+1)));
+   int JJ;
+   printf("Matching\n");
+   list_groups listsl;
+   if (pattern) {
+      this->grouping6(listsl,n,window,thrs,num_threads);
+   } else {
+      this->grouping4(listsl,n,window,thrs,MIN(4,1));
+   }
+   vector_groups lists(listsl.begin(),listsl.end());
+   time.printElapsed();
+   if (J != 0) {
+      if (J > 0)  {
+         JJ = static_cast<int>(ceil(J*static_cast<T>(_n)/batch_size))+1;
+         printf("Number of patches processed : %d\n",JJ*batch_size);
+      } else {
+         JJ = static_cast<int>(floor(J));
+      }
+      printf("Group learning\n");
+      trainer.setLambda(sigma*sigma);
+      noisy.setDataVariables(n);
+      if (pattern) {
+         list_groups listsl2;
+         this->grouping7(listsl2,n,window,thrs,num_threads);
+         vector_groups listsv(listsl2.begin(),listsl2.end());
+         trainer.train(noisy,listsv,JJ,L2ERROR,true,param_C,1,pattern);
+      } else {
+         list_groups listsl2;
+         this->grouping5(listsl2,n,window,thrs,MIN(4,1));
+         vector_groups listsv(listsl2.begin(),listsl2.end());
+         trainer.train(noisy,listsv,JJ,L2ERROR,true,param_C,1,pattern);
+      }
+      trainer.getD(D);
+   }
+   this->copy(noisy);
+   int NUM_THREADS=1;
+#ifdef _OPENMP
+   NUM_THREADS=num_threads;
+   omp_set_num_threads(NUM_THREADS);
+   omp_set_nested(0);
+   omp_set_dynamic(0);
+#endif
+   Image<T> I2(_w,_h,_V);
+   I2.setZeros();
+   Image<T> count(_w,_h,_V);
+   count.setZeros();
+   const int numPatchesX =_h-n+1;
+   const int numPatchesY =_w-n+1;
+   const int numPatches = numPatchesX*numPatchesY;
+   const int K=D.n();
+   const int L = MIN(K,_m);
+
+   Matrix<T> G;
+   D.XtX(G);
+   int Mcount=0;
+   int i;
+   int num_groups=lists.size();
+   PRINT_I(num_groups)
+#pragma omp parallel for private(i)
+      for (i = 0; i<num_groups; ++i) {
+#ifdef _OPENMP
+         int numT=omp_get_thread_num();
+#else
+         int numT=0;
+#endif
+         group& list = lists[i];
+         const int M = list.size();
+         Matrix<T> X(_m,M);
+         Vector<T> Xj;
+         /// extract data
+         int j=0;
+         for (group::iterator it =
+               list.begin(); it != list.end(); ++it) {
+            X.refCol(j++,Xj);
+            const int py = (*it)/numPatchesX;
+            const int px = (*it)-py*numPatchesX;
+            this->getPatch(Xj,px,py,n);
+         }
+         Vector<T> mean(pattern ? 4 : _V);
+         X.whiten(mean,pattern);
+         const int ind2 = MIN(9999,M*_m);
+         const T eps = param_C[ind2]*param_C[ind2]*sigma*sigma*_m*M;
+
+         if (thrsb > 0) {
+            /// perform sparse decomposition
+            Vector<int> ind;
+            Matrix<T> vM;
+
+            coreSOMP(X,D,G,vM,ind,L,eps);
+
+            /// reconstruct
+            Vector<T> d;
+            X.setZeros();
+           for (int j = 0; j<vM.m(); ++j) {
+               D.refCol(ind[j],d);
+               cblas_ger<T>(CblasColMajor,_m,M,T(1.0),
+                     d.rawX(),1,vM.rawX()+j,vM.m(),X.rawX(),_m);
+            }
+         } else {
+            Matrix<T> RtD;
+            X.mult(D,RtD,true,false);
+            Matrix<T> alphat(M,K);
+            coreGroupISTConstrained2(X,G,RtD,alphat,
+                  eps,100,T(0.001));
+            D.mult(alphat,X,false,true);
+         }
+
+         X.unwhiten(mean,pattern);
+         /// update image and count
+         j = 0;
+         for (group::iterator it =
+               list.begin(); it != list.end(); ++it) {
+            X.refCol(j++,Xj);
+            const int py = (*it)/numPatchesX;
+            const int px = (*it)-py*numPatchesX;
+            I2.addPatch(Xj,px,py,n);
+            count.incrPatch(px,py,n);
+         }
+         list.clear();
+#pragma omp critical
+         Mcount += M;
+      }
+   PRINT_I(numPatches)
+      PRINT_I(Mcount)
+      I2.scalByInv(count);
+   I2.clip();
+   printf("\t\t\tPSNR : %g\n",I2.psnr(orig));
+   this->copy(I2);
+   time.stop();
+   time.printElapsed();
+};
