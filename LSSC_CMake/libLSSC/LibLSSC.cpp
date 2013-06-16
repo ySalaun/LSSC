@@ -23,8 +23,8 @@ using namespace std;
 
 void trainL1(vector<float> &io_dict, vector<float> &i_noisy, unsigned p_nPatch, Parameters &params){
 	// matrices used for the dictionnary update
-	vector<float> A(params.k*params.k, 0.f);
-	vector<float> B(params.m*params.k, 0.f);
+	Matrix A(params.k, params.k);
+	Matrix B(params.m, params.k);
 
 	// sparse coefficients of the dictionnary
 	vector<float> alpha(params.k, 0.f);
@@ -47,8 +47,26 @@ void trainL1(vector<float> &io_dict, vector<float> &i_noisy, unsigned p_nPatch, 
 		add_xyT(B, patch, alpha);
 
 		// Update
+
+
 		// TODO
 	}
 }
 
-    
+void updateDictionary(Matrix &A, Matrix &B, Parameters &params){
+	// initialize dictionnary column vector
+	vector<float> dj(params.m, 0.f);
+	float daj = 0.f;
+	
+	// TODO: add a condition to end the loop
+	while(true){
+		for(unsigned j = 0; j < params.k; ++j){
+			for(unsigned k = 0; k < params.m; ++k){
+				daj = 0;
+			}
+			for(unsigned i = 0; i < params.m; ++i){
+				dj[i] = B[i*params.k + j] - 0;
+			}
+		}
+	}
+}
