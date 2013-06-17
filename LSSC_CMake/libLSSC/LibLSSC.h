@@ -15,6 +15,7 @@
 
 #include <stdlib.h>
 #include <vector>
+#include <time.h>  
 
 #include "Main\params.h"
 #include "utilities.h"
@@ -30,5 +31,7 @@
  * @return
  **/
 void trainL1(vector<float> &io_dict, vector<float> &i_noisy, unsigned p_nPatch, Parameters &params);
+vector<int> randPatches(int nPatch, int nPatchMax);
+void updateDictionary(Matrix &D, Matrix &A, Matrix &B, Parameters &params);
 
 #endif // LIB_LSSC_H_INCLUDED

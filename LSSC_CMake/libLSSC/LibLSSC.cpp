@@ -16,12 +16,12 @@
  *
  * @author Yohann Salaun <yohann.salaun@polytechnique.org> & Marc Lebrun <marc.lebrun@cmla.ens-cachan.fr>
  **/
-
 #include "LibLSSC.h"
 
 using namespace std;
 
-void trainL1(vector<float> &io_dict, vector<float> &i_noisy, unsigned p_nPatch, Parameters &params){
+// train the algorithm with the L1 norm
+void trainL1(Matrix &io_dict, vector<float> &i_noisy, unsigned p_nPatch, Parameters &params){
 	// matrices used for the dictionnary update
 	Matrix A(params.k, params.k);
 	Matrix B(params.m, params.k);
@@ -30,8 +30,7 @@ void trainL1(vector<float> &io_dict, vector<float> &i_noisy, unsigned p_nPatch, 
 	vector<float> alpha(params.k, 0.f);
 
 	// generation of p_nPatch iid patches 
-	vector<float> iidPatches(p_nPatch, 0.f);
-	// TODO
+	vector<int> iidPatches = randPatches(p_nPatch, params.nPatch);
 
 	// initialize patch vector
 	vector<float> patch(params.sPatch, 0.f);
@@ -47,26 +46,79 @@ void trainL1(vector<float> &io_dict, vector<float> &i_noisy, unsigned p_nPatch, 
 		add_xyT(B, patch, alpha);
 
 		// Update
-
-
-		// TODO
+		updateDictionary(io_dict, A, B, params);
 	}
+
+	// free memory
+	A.~Matrix();
+	B.~Matrix();
 }
 
-void updateDictionary(Matrix &A, Matrix &B, Parameters &params){
+// generation of random patches
+vector<int> randPatches(int nPatch, int nPatchMax){
+	// list with all possibilities
+	vector<int> list(nPatchMax, 0);	
+	for(unsigned i = 0; i < nPatchMax; ++i){
+		list[i] = i;
+	}
+
+	// list of random patches
+	vector<int> randPatches(nPatch, 0);
+
+	// seed the random function
+	srand (time(NULL));
+
+	// find the nPatch iid patches
+	for(unsigned i = 0; i < nPatch; ++i){
+		unsigned index = rand() % list.size();
+		randPatches[i] = list[index];
+		list.erase(list.begin() + index);
+	}
+
+	return randPatches;
+}
+
+// dictionary update algorithm
+void updateDictionary(Matrix &D, Matrix &A, Matrix &B, Parameters &params){
 	// initialize dictionnary column vector
-	vector<float> dj(params.m, 0.f);
-	float daj = 0.f;
+	Matrix u(params.m, params.k);
 	
-	// TODO: add a condition to end the loop
-	while(true){
+	float norm2;
+
+	for(unsigned iter = 0; iter < params.update_iteration; ++iter){
+		// u = DA
+		product_AB(D, A, u);
+		
+		// u = B - u
+		add(B, u, u, true);
+		
+		// uj = uj/ajj for each column j of u
 		for(unsigned j = 0; j < params.k; ++j){
-			for(unsigned k = 0; k < params.m; ++k){
-				daj = 0;
-			}
 			for(unsigned i = 0; i < params.m; ++i){
-				dj[i] = B[i*params.k + j] - 0;
+				u.matrix[i*params.k + j] /= A.matrix[j*params.k + j];
 			}
 		}
+
+		// u = u + D
+		add(u, D, u);
+		
+		// uj = uj / max(||u||_2, 1) for each column j
+		for(unsigned j = 0; j < params.k; ++j){
+			norm2 = 0.f;
+			for(unsigned i = 0; i < params.m; ++i){
+				norm2 += u.matrix[i*params.k + j] * u.matrix[i*params.k + j];
+			}
+			if(norm2 > 1){
+				norm2 = sqrt(norm2);
+				for(unsigned i = 0; i < params.m; ++i){
+					u.matrix[i*params.k + j] /= norm2;
+				}
+			}
+		}
+
+		// D = copy(u)
+		D.setMatrix(params.m, params.k, u.matrix);
 	}
+	// free memory
+	u.~Matrix();
 }

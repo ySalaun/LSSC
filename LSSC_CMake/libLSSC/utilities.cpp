@@ -40,28 +40,30 @@ int add_xyT(Matrix &A, vector<float> &x, vector<float> &y){
 	return 1;
 }
 
-vector<float> product_ABj(Matrix &A, Matrix &B, int col){
-	unsigned n = B.nRow;
+int product_AB(Matrix &A, Matrix &B, Matrix &AB){
+	unsigned K = B.nRow;
 
 	// size issue
-	if(A.nCol != n){
-		cout << "size issue in function product_Ax" << endl;
-		return vector<float>(n, 0.f);
+	if(A.nCol != K){
+		cout << "size issue in function product_AB" << endl;
+		return 0;
 	}
 
-	unsigned m = A.nCol;
-	vector<float> ABj(m, 0.f);
+	unsigned m = A.nRow;
+	unsigned n = B.nCol;
 	float sum;
 
 	for(unsigned i = 0; i < m; ++i){
-		sum = 0;
 		for(unsigned j = 0; j < n; ++j){
-			sum += A.matrix[i*n + j]*B.matrix[j*B.nCol + col];
+			sum = 0.f;
+			for(unsigned k = 0; k < K; ++k){
+				sum += A.matrix[i*K + k]*B.matrix[k*n + j];
+			}
+			AB.matrix[i*n + j] = sum;
 		}
-		ABj[i] = sum;
+		
 	}
-
-	return ABj;
+	return 1;
 }
 
 vector<float> product_Ax(Matrix &A, vector<float> &x){
@@ -88,9 +90,10 @@ vector<float> product_Ax(Matrix &A, vector<float> &x){
 	return Ax;
 }
 
-vector<float> add(vector<float> &A, vector<float> &B){
+vector<float> add(vector<float> &A, vector<float> &B, bool minus){
 	unsigned n = A.size();
-	
+	int sign = (minus)? -1:1;
+
 	// size issue
 	if(B.size() != n){
 		cout << "size issue in function add" << endl;
@@ -100,30 +103,29 @@ vector<float> add(vector<float> &A, vector<float> &B){
 	vector<float> C(n, 0.f);
 
 	for(unsigned i = 0; i < n; ++i){
-		C[i] = A[i] + B[i];
+		C[i] = A[i] + sign * B[i];
 	}
 
 	return C;
 }
 
-Matrix add(Matrix &A, Matrix &B){
+int add(Matrix &A, Matrix &B, Matrix &C, bool minus){
 	unsigned m = A.nRow;
 	unsigned n = A.nCol;
-	
+	int sign = (minus)? -1:1;
+
 	// size issue
 	if(B.nRow != m || B.nCol != n){
 		cout << "size issue in function add" << endl;
-		return Matrix(m, n);
+		return 0;
 	}
-
-	Matrix C(m, n);
 
 	for(unsigned i = 0; i < m; ++i){
 		for(unsigned j = 0; j < n; ++j){
-			C.matrix[i*n + j] = A.matrix[i*n + j] + B.matrix[i*n + j];
+			C.matrix[i*n + j] = A.matrix[i*n + j] + sign * B.matrix[i*n + j];
 		}
 	}
 
-	return C;
+	return 1;
 }
     

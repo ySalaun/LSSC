@@ -33,8 +33,11 @@ struct Parameters{
 	unsigned nPatch;	// number
 	unsigned sPatch;	// size
 	
-	// LARS informations
+	// LARS algorithm
 	float reg;			// regularization coefficient
+
+	// Update algorithm
+	unsigned update_iteration;	// TODO: Mairal seems to have set it to 1 (and 5 in batch case <== ?)
 };
 
 #endif // PARAMETERS_INCLUDED

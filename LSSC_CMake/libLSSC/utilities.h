@@ -19,6 +19,10 @@
 
 using namespace std;
 
+// small class for Matrices
+// elements are accessed this way:
+// M(i,j) = M.matrix[i * M.nCol + j];
+// where i is the row and j the column
 class Matrix{
 public:
 	int nRow, nCol;
@@ -31,6 +35,20 @@ public:
 		for(unsigned i = 0; i < n*m; ++i){
 			matrix[i] = 0.f;
 		}
+	}
+
+	void setMatrix(int m, int n, float *mat){
+		delete[] matrix;
+		nRow = m;
+		nCol = n;
+		matrix = new float[m*n];
+		for(unsigned i = 0; i < m*n; ++i){
+			matrix[i] = mat[i];
+		}
+	}
+
+	~Matrix(){
+		delete[] matrix;
 	}
 };
 
@@ -45,7 +63,7 @@ public:
  **/
 int add_xyT(Matrix &A, vector<float> &x, vector<float> &y);
 
-vector<float> product_ABj(Matrix &A, Matrix &B, int col);
+int product_AB(Matrix &A, Matrix &B, Matrix &AB);
 vector<float> product_Ax(Matrix &A, vector<float> &x);
 
 /**
@@ -54,9 +72,9 @@ vector<float> product_Ax(Matrix &A, vector<float> &x);
  * @param A : matrix/vector of size n;
  * @param B : matrix/vector of size n;
  *
- * @return 0 if size issue and A + B else
+ * @return 0 if size issue and A + B else 1
  **/
-vector<float> add(vector<float> &A, vector<float> &B);
-Matrix add(Matrix &A, Matrix &B);
+vector<float> add(vector<float> &A, vector<float> &B, bool minus = false);
+int add(Matrix &A, Matrix &B, Matrix &C, bool minus = false);
 
 #endif // UTILITIES_H_INCLUDED

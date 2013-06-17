@@ -94,15 +94,15 @@ The algorithm corresponds then to the minimization of eq.\ref{sparseDict} on the
 \SetLine
 \textbf{Input} : number of iterations \textbf{T},  i.i.d. sampling of \textbf{T} patches of the noisy picture \textbf{Y}$_T$, initial dictionary \dict$^0$ $\in \RR^{\psize \times \dsize}$, regularization parameter $\lambda$ \\
 \textbf{Output} : learned dictionary \dict \\
-\textbf{Initialization} : \textbf{B}$^0 \in \RR^{\dsize \times \dsize} \leftarrow 0$,  \textbf{C}$^0 \in \RR^{\psize \times \dsize} \leftarrow 0$ \\
+\textbf{Initialization} : \textbf{A}$^0 \in \RR^{\dsize \times \dsize} \leftarrow 0$,  \textbf{B}$^0 \in \RR^{\psize \times \dsize} \leftarrow 0$ \\
 	\For{ t = 1..\textbf{T}}{
 		\textbf{\noi}$_t$ = \textbf{\Noi}$_T$[t]\\
 		Sparse coding: compute with LARS algorithm:
 \[
 		\textbf{$\code$}^t = \argmin_{\code \in \RR^\dsize} ||\code||_1 \text{ s.t. } ||\noi - \dict^{t-1} \code||_2^2 \leq \lambda
 \]
-		\textbf{B}$^t \leftarrow \textbf{B}^{t-1} + \code^t \code^{t T}$\\
-		\textbf{C}$^t \leftarrow \textbf{C}^{t-1} + \textbf{\noi}^t \code^{t T}$\\
+		\textbf{A}$^t \leftarrow \textbf{A}^{t-1} + \code^t \code^{t T}$\\
+		\textbf{B}$^t \leftarrow \textbf{B}^{t-1} + \textbf{\noi}^t \code^{t T}$\\
 		Update dictionary from \dict$^{t-1}$ to \dict$^{t}$ so that:
 \[
 		\dict^{t}= \argmin_{\dict \in\RR^{\psize \times \dsize}} \frac{1}{t} \sum_{i=1}^t (\frac{1}{2}|\textbf{\noi}^i - \dict \code^i||^2_2 + \lambda ||\code^i||_1)
@@ -117,13 +117,13 @@ The algorithm corresponds then to the minimization of eq.\ref{sparseDict} on the
 \begin{algorithm}[H]
 
 \SetLine
-\textbf{Input} :input dictionary \dict = [\textbf{d}$^1$, ... , \textbf{d}$^\dsize$] $\in \mathbb{R}^{\psize \times \dsize}$, \\ \textbf{B} = [\textbf{b}$^1$, ... , \textbf{b}$^\dsize$] $ \in \mathbb{R}^{\dsize \times \dsize}$,  \textbf{C} = [\textbf{c}$^1$, ... , \textbf{c}$^\dsize$]$ \in \mathbb{R}^{\psize \times \dsize}$\\
+\textbf{Input} :input dictionary \dict = [\textbf{d}$^1$, ... , \textbf{d}$^\dsize$] $\in \mathbb{R}^{\psize \times \dsize}$, \\ \textbf{A} = [\textbf{a}$^1$, ... , \textbf{a}$^\dsize$] $ \in \mathbb{R}^{\dsize \times \dsize}$,  \textbf{B} = [\textbf{b}$^1$, ... , \textbf{b}$^\dsize$]$ \in \mathbb{R}^{\psize \times \dsize}$\\
 \textbf{Output} : updated dictionary \textbf{\dict} \\
 \Repeat{convergence}{
-	\For{ i = 1..\dsize}{
+	\For{ j = 1..\dsize}{
 		update the $j^{th}$ column:
 \[
-		\textbf{u}^{j}\leftarrow \frac{1}{\textbf{B}(j,j)} (\textbf{c}^{j} -\dict\textbf{b}^{j}) + \textbf{d}^{j}
+		\textbf{u}^{j}\leftarrow \frac{1}{\textbf{A}(j,j)} (\textbf{b}^{j} -\dict\textbf{a}^{j}) + \textbf{d}^{j}
 \]
 \[
 		\textbf{d}^{j}\leftarrow \frac{1}{\max(||\textbf{u}^{j}||_2, 1)}\textbf{u}^{j}
