@@ -78,6 +78,25 @@ vector<int> randPatches(int nPatch, int nPatchMax){
 	return randPatches;
 }
 
+// lars algorithm that minimizes ||alpha||_1 s.t. ||i_noisy - dict*alpha||_2 < lambda
+vector<float> lars(const Matrix &p_dict, const vector<float> &p_patch, Parameters &params){
+	// code
+	vector<float> alpha(params.k);
+
+	// noisy picture norm
+	// TODO: generate norm computation
+	float norm = 0;
+
+	// most correlated element
+	float correlation = 0.f;
+	int currentIndex = 0;
+	// TODO: compute max of correlation
+
+
+	// sort the coefficients inside alpha
+	return alpha;
+}
+
 // dictionary update algorithm
 void updateDictionary(Matrix &D, Matrix &A, Matrix &B, Parameters &params){
 	// initialize dictionnary column vector

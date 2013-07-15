@@ -66,23 +66,28 @@ int product_AB(Matrix &A, Matrix &B, Matrix &AB){
 	return 1;
 }
 
-vector<float> product_Ax(Matrix &A, vector<float> &x){
+vector<float> product_Ax(Matrix &A, vector<float> &x, bool transpose = false){
 	unsigned n = x.size();
 	
 	// size issue
-	if(A.nCol != n){
+	if((A.nCol != n && !transpose) || (A.nRow != n && transpose)){
 		cout << "size issue in function product_Ax" << endl;
 		return vector<float>(n, 0.f);
 	}
 
-	unsigned m = A.nCol;
+	unsigned m = (transpose)? A.nCol : A.nRow;
 	vector<float> Ax(m, 0.f);
 	float sum;
 
 	for(unsigned i = 0; i < m; ++i){
 		sum = 0;
 		for(unsigned j = 0; j < n; ++j){
-			sum += A.matrix[i*n + j]*x[j];
+			if(transpose){
+				sum += A.matrix[j*m + i]*x[j];
+			}
+			else{
+				sum += A.matrix[i*n + j]*x[j];
+			}
 		}
 		Ax[i] = sum;
 	}

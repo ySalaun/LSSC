@@ -34,7 +34,7 @@ struct Parameters{
 	unsigned sPatch;	// size
 	
 	// LARS algorithm
-	float reg;			// regularization coefficient
+	float reg;			// regularization coefficient TODO: but isn t it chosen wrt the current patch/picture ?
 
 	// Update algorithm
 	unsigned update_iteration;	// TODO: Mairal seems to have set it to 1 (and 5 in batch case <== ?)
