@@ -66,7 +66,7 @@ int product_AB(Matrix &A, Matrix &B, Matrix &AB){
 	return 1;
 }
 
-vector<float> product_Ax(Matrix &A, vector<float> &x, bool transpose = false){
+vector<float> product_Ax(const Matrix &A, const vector<float> &x, const bool transpose){
 	unsigned n = x.size();
 	
 	// size issue
@@ -132,5 +132,21 @@ int add(Matrix &A, Matrix &B, Matrix &C, bool minus){
 	}
 
 	return 1;
+}
+
+float dotProduct(const vector<float> x, const vector<float> y){
+	unsigned n = x.size();
+	
+	// size issue
+	if(n != y.size()){
+		cout << "size issue in function dot product" << endl;
+		return 0.f;
+	}
+
+	float res = 0.f;
+	for(unsigned i = 0; i < n; ++i){
+		res += x[i]*y[i];
+	}
+	return res;
 }
     

@@ -6,7 +6,7 @@ IF(UNIX)
     SET(BUILD_SHARED_LIBS OFF CACHE BOOL "Dynamic libraries")
 ENDIF(UNIX)
 
-# Use the local libraries and do not check the system libaries
+# Use the local libraries and do not check the system libraries
 SET(WITH_LOCAL_ZLIB OFF CACHE BOOL "Use local zlib")
 SET(WITH_LOCAL_LIBPNG OFF CACHE BOOL "Use local libpng")
 SET(WITH_LOCAL_LIBTIFF OFF CACHE BOOL "Use local libtiff")

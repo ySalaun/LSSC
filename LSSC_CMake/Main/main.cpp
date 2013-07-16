@@ -56,19 +56,34 @@ int main(
 	//! Add noise
     addNoise(im, imNoisy, sigma, verbose);
 	
-	cout << imFinal.size() << endl;
+	//! Parameters
+	// TODO remark, for now the pictures are considered to be B&W
+	// TODO the parameters have to be smarter
+	Parameters params;
+	params.h = imSize.height;
+	params.w = imSize.width;
+	params.sPatch = 16;
+	params.m = params.sPatch * params.sPatch;
+	params.k = 512;
+	params.nPatch = imSize.wh/params.m;
+	params.nRowPatches = params.w/params.sPatch;
+	params.nColPatches = params.h/params.sPatch;
+	params.reg = 0.5; // TODO: compute the real value
+	params.update_iteration = 1; // TODO see into Mairal's code
 
     //! LSSC
+	Matrix dict(params.m, params.k);
+	unsigned nRandomPatches = unsigned(floor(.2 * params.nPatch));
+	trainL1(dict, imNoisy, nRandomPatches, params);
+	dict.~Matrix();
 
-
-
-    for (unsigned c = 0; c < imSize.nChannels; c++) {
+	for (unsigned c = 0; c < imSize.nChannels; c++) {
         for (unsigned i = 0; i < imSize.height; i++) {
             for (unsigned j = 0; j < imSize.width; j++) {
-				imFinal.push_back(imNoisy[c * imSize.wh + i * imSize.width + j]);
-				imDiff.push_back(imNoisy[c * imSize.wh + i * imSize.width + j]);
-				imBias.push_back(imNoisy[c * imSize.wh + i * imSize.width + j]);
-				imDiffBias.push_back(imNoisy[c * imSize.wh + i * imSize.width + j]);
+				imFinal.push_back(imNoisy[0 * imSize.wh + i * imSize.width + j]);
+				imDiff.push_back(imNoisy[0 * imSize.wh + i * imSize.width + j]);
+				imBias.push_back(imNoisy[0 * imSize.wh + i * imSize.width + j]);
+				imDiffBias.push_back(imNoisy[0 * imSize.wh + i * imSize.width + j]);
             }
         }
     }

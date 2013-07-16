@@ -47,6 +47,56 @@ public:
 		}
 	}
 
+	// set a Matrix as a Gram Matrix version of the input
+	void setGram(Matrix D){
+		nRow = D.nCol;
+		nCol = D.nCol;
+		delete[] matrix;
+		matrix = new float[nRow*nRow];
+		for(unsigned i = 0; i < nCol; ++i){
+			for(unsigned j = 0; j < nCol; ++j){
+				float sum = 0;
+				for(unsigned k = 0; k < D.nCol; ++k){
+					sum += D.matrix[k * nCol + i] * D.matrix[k * nCol + j];
+				}
+				matrix[i * nCol + j] = sum;
+			}
+		}
+	}
+
+	void copyRow(Matrix M, int i_from, int i_to){
+		if(M.nCol != nCol){
+			cout << "error in row size" << endl;
+		}
+		else{
+			for(unsigned j=0; j<nCol; ++j){
+				matrix[i_to * nCol + j] = M.matrix[i_from * nCol + j];
+			}
+		}
+	}
+
+	void copyCol(Matrix M, int j_from, int j_to){
+		if(M.nRow != nRow){
+			cout << "error in column size" << endl;
+		}
+		else{
+			for(unsigned i=0; i<nRow; ++i){
+				matrix[i * nCol + j_to] = M.matrix[i * nCol + j_from];
+			}
+		}
+	}
+
+	void symmetrizeUpperPart(){
+		if(nRow != nCol){
+			cout << "it is not a square matrix" << endl;
+		}
+		for(unsigned i=0; i<nRow; ++i){
+			for(unsigned j=i+1; j<nCol; ++j){
+				matrix[j * nCol + i] = matrix[i * nCol + j];
+			}
+		}
+	}
+
 	~Matrix(){
 		delete[] matrix;
 	}
@@ -64,7 +114,7 @@ public:
 int add_xyT(Matrix &A, vector<float> &x, vector<float> &y);
 
 int product_AB(Matrix &A, Matrix &B, Matrix &AB);
-vector<float> product_Ax(Matrix &A, vector<float> &x);
+vector<float> product_Ax(const Matrix &A, const vector<float> &x, const bool transpose = false);
 
 /**
  * @brief Compute C = A + B
@@ -76,5 +126,7 @@ vector<float> product_Ax(Matrix &A, vector<float> &x);
  **/
 vector<float> add(vector<float> &A, vector<float> &B, bool minus = false);
 int add(Matrix &A, Matrix &B, Matrix &C, bool minus = false);
+
+float dotProduct(const vector<float> x, const vector<float> y);
 
 #endif // UTILITIES_H_INCLUDED

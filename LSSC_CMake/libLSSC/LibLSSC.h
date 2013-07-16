@@ -30,8 +30,9 @@
  *
  * @return
  **/
-void trainL1(vector<float> &io_dict, vector<float> &i_noisy, unsigned p_nPatch, Parameters &params);
+void trainL1(Matrix &io_dict, vector<float> &i_noisy, unsigned p_nPatch, Parameters &params);
 vector<int> randPatches(int nPatch, int nPatchMax);
 void updateDictionary(Matrix &D, Matrix &A, Matrix &B, Parameters &params);
+vector<float> lars(const Matrix &p_dict, const vector<float> &p_patch, Parameters &params);
 
 #endif // LIB_LSSC_H_INCLUDED

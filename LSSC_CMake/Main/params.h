@@ -22,19 +22,21 @@
 
 struct Parameters{
 	// Picture informations
-	unsigned w;			// width
-	unsigned h;			// height
+	unsigned w;				// width
+	unsigned h;				// height
 
 	// Dictionnary informations
-	unsigned k;			// number of elements
-	unsigned m;			// squared of patch size (m = sPatch^2)
+	unsigned k;				// number of elements
+	unsigned m;				// squared of patch size (m = sPatch^2)
 
 	// Patches informations
-	unsigned nPatch;	// number
-	unsigned sPatch;	// size
+	unsigned nPatch;		// number
+	unsigned sPatch;		// size
+	unsigned nRowPatches;	// number of patches in a row
+	unsigned nColPatches;	// number of patches in a column
 	
 	// LARS algorithm
-	float reg;			// regularization coefficient TODO: but isn t it chosen wrt the current patch/picture ?
+	float reg;				// regularization coefficient TODO: but isn t it chosen wrt the current patch/picture ?
 
 	// Update algorithm
 	unsigned update_iteration;	// TODO: Mairal seems to have set it to 1 (and 5 in batch case <== ?)
