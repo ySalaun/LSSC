@@ -26,33 +26,36 @@ using namespace std;
 class Matrix{
 public:
 	int nRow, nCol;
-	float *matrix;
+	vector<float> matrix;
 
-	Matrix(int m, int n){
-		nRow = m;
-		nCol = n;
-		matrix = new float[n*m];
-		for(unsigned i = 0; i < n*m; ++i){
-			matrix[i] = 0.f;
-		}
+	Matrix(int m, int n):	
+    nRow(m),
+		nCol(n),
+    matrix(n*m, 0.f)
+  {}
+
+  Matrix(Matrix &m):
+    nRow(m.nRow),
+    nCol(m.nCol),
+    matrix(m.matrix)
+  {}
+
+	Matrix& operator=(Matrix& mat){
+    nRow = mat.nRow;
+    nCol = mat.nCol;
+    matrix = mat.matrix;
+    return *this;
 	}
 
-	void setMatrix(int m, int n, float *mat){
-		delete[] matrix;
-		nRow = m;
-		nCol = n;
-		matrix = new float[m*n];
-		for(unsigned i = 0; i < m*n; ++i){
-			matrix[i] = mat[i];
-		}
-	}
-
-	// set a Matrix as a Gram Matrix version of the input
-	void setGram(Matrix D){
+	float* operator()(const unsigned i, const unsigned j){
+    return &matrix[i * nCol + j];
+  }
+  
+  // set a Matrix as a Gram Matrix version of the input
+	void setGram(const Matrix &D){
 		nRow = D.nCol;
 		nCol = D.nCol;
-		delete[] matrix;
-		matrix = new float[nRow*nRow];
+		matrix.assign(nRow*nRow, 0.f);
 		for(unsigned i = 0; i < nCol; ++i){
 			for(unsigned j = 0; j < nCol; ++j){
 				float sum = 0;
@@ -64,7 +67,7 @@ public:
 		}
 	}
 
-	void copyRow(Matrix M, int i_from, int i_to){
+	void copyRow(const Matrix &M, int i_from, int i_to){
 		if(M.nCol != nCol){
 			cout << "error in row size" << endl;
 		}
@@ -75,7 +78,15 @@ public:
 		}
 	}
 
-	void copyCol(Matrix M, int j_from, int j_to){
+  vector<float> row(const unsigned iRow){
+    vector<float> row(iRow);
+    for(unsigned j=0; j<nCol; ++j){
+      row[j] = matrix[iRow * nCol + j];
+    }
+    return row;
+  }
+
+	void copyCol(const Matrix &M, int j_from, int j_to){
 		if(M.nRow != nRow){
 			cout << "error in column size" << endl;
 		}
@@ -98,7 +109,6 @@ public:
 	}
 
 	~Matrix(){
-		delete[] matrix;
 	}
 };
 
@@ -113,7 +123,7 @@ public:
  **/
 int add_xyT(Matrix &A, vector<float> &x, vector<float> &y);
 
-int product_AB(Matrix &A, Matrix &B, Matrix &AB);
+int product_AB(const Matrix &A, const Matrix &B, Matrix &AB, const bool transpose = false);
 vector<float> product_Ax(const Matrix &A, const vector<float> &x, const bool transpose = false);
 
 /**
@@ -124,8 +134,8 @@ vector<float> product_Ax(const Matrix &A, const vector<float> &x, const bool tra
  *
  * @return 0 if size issue and A + B else 1
  **/
-vector<float> add(vector<float> &A, vector<float> &B, bool minus = false);
-int add(Matrix &A, Matrix &B, Matrix &C, bool minus = false);
+vector<float> add(const vector<float> &A, const vector<float> &B, bool minus = false);
+int add(const Matrix &A, const Matrix &B, Matrix &C, const bool minus = false);
 
 float dotProduct(const vector<float> x, const vector<float> y);
 

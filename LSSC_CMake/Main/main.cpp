@@ -68,14 +68,35 @@ int main(
 	params.nPatch = imSize.wh/params.m;
 	params.nRowPatches = params.w/params.sPatch;
 	params.nColPatches = params.h/params.sPatch;
-	params.reg = 0.5; // TODO: compute the real value
+	params.reg = 1e7; // TODO: compute the real value
 	params.update_iteration = 1; // TODO see into Mairal's code
 
-    //! LSSC
-	Matrix dict(params.m, params.k);
-	unsigned nRandomPatches = unsigned(floor(.2 * params.nPatch));
+  //! LSSC
+  Matrix dict(params.m, params.k);
+	// PART 1
+  // LEARNING PART WITH LARS
+  unsigned nRandomPatches = 10;//unsigned(floor(.2 * params.nPatch));
 	trainL1(dict, imNoisy, nRandomPatches, params);
-	dict.~Matrix();
+  
+  // PART 2
+  // ORMP from KSVD
+
+  // TODO
+
+  // PART 3
+  // CLUSTERING
+
+  // TODO
+
+  // PART 4
+  // LEARNING WITH SIMULTANEOUS LARS
+
+  // TODO
+
+  // PART 5
+  // SIMULTANEOUS ORMP
+
+  // TODO
 
 	for (unsigned c = 0; c < imSize.nChannels; c++) {
         for (unsigned i = 0; i < imSize.height; i++) {

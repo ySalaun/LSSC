@@ -40,8 +40,9 @@ int add_xyT(Matrix &A, vector<float> &x, vector<float> &y){
 	return 1;
 }
 
-int product_AB(Matrix &A, Matrix &B, Matrix &AB){
-	unsigned K = B.nRow;
+int product_AB(const Matrix &A, const Matrix &B, Matrix &AB, const bool transpose){
+	// TODO: the transpose part
+  unsigned K = B.nRow;
 
 	// size issue
 	if(A.nCol != K){
@@ -63,6 +64,32 @@ int product_AB(Matrix &A, Matrix &B, Matrix &AB){
 		}
 		
 	}
+
+	/*std::vector<float> q0(K);
+	float * const pq0 = &q0[0];
+
+	for (unsigned i = 0; i < n; i++) 
+	{
+		const float *pB = &B.matrix[i];
+		for (unsigned k = 0; k < K; k++, pB += n)
+		{
+			pq0[k] = *pB;
+		}
+
+		float * pO = &AB.matrix[i];
+		const float * pA = &A.matrix[0];
+		for (unsigned j = 0; j < m; j++, pO += n, pA += K)
+		{
+			float z = 0.f;
+			for (unsigned k = 0; k < K; k++)
+			{
+				z += pA[k] * pq0[k];
+			}
+
+			*pO = z;
+		}
+	}*/
+
 	return 1;
 }
 
@@ -95,7 +122,7 @@ vector<float> product_Ax(const Matrix &A, const vector<float> &x, const bool tra
 	return Ax;
 }
 
-vector<float> add(vector<float> &A, vector<float> &B, bool minus){
+vector<float> add(const vector<float> &A, const vector<float> &B, bool minus){
 	unsigned n = A.size();
 	int sign = (minus)? -1:1;
 
@@ -114,22 +141,14 @@ vector<float> add(vector<float> &A, vector<float> &B, bool minus){
 	return C;
 }
 
-int add(Matrix &A, Matrix &B, Matrix &C, bool minus){
-	unsigned m = A.nRow;
-	unsigned n = A.nCol;
-	int sign = (minus)? -1:1;
-
+int add(const Matrix &A, const Matrix &B, Matrix &C, const bool minus){
 	// size issue
-	if(B.nRow != m || B.nCol != n){
+	if(B.nRow != A.nRow || B.nCol != A.nCol){
 		cout << "size issue in function add" << endl;
 		return 0;
 	}
 
-	for(unsigned i = 0; i < m; ++i){
-		for(unsigned j = 0; j < n; ++j){
-			C.matrix[i*n + j] = A.matrix[i*n + j] + sign * B.matrix[i*n + j];
-		}
-	}
+  C.matrix = add(A.matrix, B.matrix, minus);
 
 	return 1;
 }

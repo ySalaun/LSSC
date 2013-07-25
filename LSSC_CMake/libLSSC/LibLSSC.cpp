@@ -24,7 +24,7 @@ using namespace std;
 #define EPSILON		1e-15
 
 // train the algorithm with the L1 norm
-void trainL1(Matrix &io_dict, vector<float> &i_noisy, unsigned p_nPatch, Parameters &params){
+void trainL1(Matrix &io_dict, const vector<float> &i_noisy, unsigned p_nPatch, const Parameters &params){
 
 	// matrices used for the dictionnary update
 	Matrix A(params.k, params.k);
@@ -39,8 +39,8 @@ void trainL1(Matrix &io_dict, vector<float> &i_noisy, unsigned p_nPatch, Paramet
 	// initialize patch vector
 	vector<float> patch(params.m, 0.f);
 
-	/*for(unsigned i = 0; i < p_nPatch; ++i){
-		// compute patch vector
+	for(unsigned i = 0; i < p_nPatch; ++i){
+    // compute patch vector
 		int I = iidPatches[i] / params.nRowPatches * params.sPatch;
 		int J = iidPatches[i] % params.nRowPatches * params.sPatch;
 		for(unsigned ii = 0; ii < params.sPatch; ++ii){
@@ -50,22 +50,20 @@ void trainL1(Matrix &io_dict, vector<float> &i_noisy, unsigned p_nPatch, Paramet
 		}
 		
 		// LARS
-		//lars(io_dict, patch, params);
+		lars(io_dict, patch, params);
 
 		add_xyT(A, alpha, alpha);
 		add_xyT(B, patch, alpha);
 
 		// Update
 		updateDictionary(io_dict, A, B, params);
-	}*/
 
-	// free memory
-	//A.~Matrix();
-	//B.~Matrix();
+		cout << i << " done" << endl;
+	}
 }
 
 // generation of random patches
-vector<int> randPatches(int nPatch, int nPatchMax){
+vector<int> randPatches(const int nPatch, const int nPatchMax){
 	// list with all possibilities
 	vector<int> list(nPatchMax, 0);	
 	for(unsigned i = 0; i < nPatchMax; ++i){
@@ -89,7 +87,7 @@ vector<int> randPatches(int nPatch, int nPatchMax){
 }
 
 // lars algorithm that minimizes ||alpha||_1 s.t. ||i_noisy - dict*alpha||_2 < lambda
-vector<float> lars(const Matrix &p_dict, const vector<float> &p_patch, Parameters &params){
+vector<float> lars(const Matrix &p_dict, const vector<float> &p_patch, const Parameters &params){
 	// code
 	vector<float> alpha(params.k, 0);
 	
@@ -119,7 +117,7 @@ vector<float> lars(const Matrix &p_dict, const vector<float> &p_patch, Parameter
 
 	// matrices parameters
 	Matrix G(params.k, params.k);
-	G.setGram(p_dict);
+  product_AB(p_dict, p_dict, G, true);
 	Matrix Ga(params.k, params.k);
 	Matrix Gs(params.k, params.k);
 	Matrix invGs(params.k, params.k);
@@ -132,7 +130,7 @@ vector<float> lars(const Matrix &p_dict, const vector<float> &p_patch, Parameter
 			Ga.copyRow(G, currentIndex, i);
 			Gs.copyCol(Ga, currentIndex, i);
 			Gs.symmetrizeUpperPart();
-			// TODO: update Gs^-1
+      // TODO: update Gs^-1
 		}
 
 		/*-------VARIABLES UPDATE-------*/
@@ -233,24 +231,39 @@ vector<float> lars(const Matrix &p_dict, const vector<float> &p_patch, Parameter
 			newAtom = true;
 		}
 	}	
-	
-	// free memory
-	G.~Matrix();
-	Ga.~Matrix();
-	Gs.~Matrix();
-	invGs.~Matrix();
 
 	// return final code
 	return alpha;
 }
 
+void updateGram(Matrix &invGs, Matrix &Gs, const unsigned iter, const Parameters &params){
+  // case when the matrix is 1x1
+  if(iter == 0){
+    invGs.matrix[0] = 1/Gs.matrix[0];
+  }
+  else{
+    // iRow = Gs[i-th row]
+    vector<float> iRow = Gs.row(iter);
+    
+    // u = Gs^-1 Gs[iter-th row]
+    vector<float> u = product_Ax(invGs, iRow);
+
+    // sigma = 1/(Gs_ii - u. Gs[i-th row])
+    float sigma = 1/((*Gs(iter, iter)) - dotProduct(u, iRow));
+
+    //
+    //invGs(iter, iter) = sigma; 
+   
+  }
+}
+
 // dictionary update algorithm
-void updateDictionary(Matrix &D, Matrix &A, Matrix &B, Parameters &params){
-	// initialize dictionnary column vector
-	Matrix u(params.m, params.k);
+void updateDictionary(Matrix &D, const Matrix &A, const Matrix &B, const Parameters &params){
+	time_t t1, t2, t3, t4;
 	
 	float norm2;
-
+  Matrix u(params.m, params.k);
+  //D = Matrix(D.nRow, D.nCol);
 	for(unsigned iter = 0; iter < params.update_iteration; ++iter){
 		// u = DA
 		product_AB(D, A, u);
@@ -261,7 +274,10 @@ void updateDictionary(Matrix &D, Matrix &A, Matrix &B, Parameters &params){
 		// uj = uj/ajj for each column j of u
 		for(unsigned j = 0; j < params.k; ++j){
 			for(unsigned i = 0; i < params.m; ++i){
-				u.matrix[i*params.k + j] /= A.matrix[j*params.k + j];
+        // TODO Beware, this condition should really be there ?
+        if(A.matrix[j*params.k + j] != 0){
+          u.matrix[i*params.k + j] /= A.matrix[j*params.k + j];
+        }
 			}
 		}
 
@@ -282,9 +298,7 @@ void updateDictionary(Matrix &D, Matrix &A, Matrix &B, Parameters &params){
 			}
 		}
 
-		// D = copy(u)
-		D.setMatrix(params.m, params.k, u.matrix);
+    // D = u
+    D = u;
 	}
-	// free memory
-	u.~Matrix();
 }
