@@ -17,6 +17,8 @@
 #include <iostream>
 #include <vector>
 
+#include "Main\params.h"
+
 using namespace std;
 
 // small class for Matrices
@@ -47,8 +49,8 @@ public:
     return *this;
 	}
 
-	float* operator()(const unsigned i, const unsigned j){
-    return &matrix[i * nCol + j];
+	float& operator()(const unsigned i, const unsigned j){
+    return matrix[i * nCol + j];
   }
   
   // set a Matrix as a Gram Matrix version of the input
@@ -78,9 +80,9 @@ public:
 		}
 	}
 
-  vector<float> row(const unsigned iRow){
-    vector<float> row(iRow);
-    for(unsigned j=0; j<nCol; ++j){
+  vector<float> row(const unsigned iRow, const unsigned length){
+    vector<float> row(length);
+    for(unsigned j=0; j<length; ++j){
       row[j] = matrix[iRow * nCol + j];
     }
     return row;
@@ -97,12 +99,12 @@ public:
 		}
 	}
 
-	void symmetrizeUpperPart(){
+	void symmetrizeUpperPart(int iMax){
 		if(nRow != nCol){
 			cout << "it is not a square matrix" << endl;
 		}
-		for(unsigned i=0; i<nRow; ++i){
-			for(unsigned j=i+1; j<nCol; ++j){
+		for(unsigned i=0; i<iMax; ++i){
+			for(unsigned j=i+1; j<iMax; ++j){
 				matrix[j * nCol + i] = matrix[i * nCol + j];
 			}
 		}
@@ -112,6 +114,9 @@ public:
 	}
 };
 
+void display(const char* msg, const Parameters &params, bool endline = true);
+void display(const vector<float>& vec);
+void display(const Matrix & mat, const int iMax = -1);
 /**
  * @brief Compute A = A + xy' where y' is the transposed version of y
  *
@@ -121,10 +126,10 @@ public:
  *
  * @return 0 if size issue and 1 else
  **/
-int add_xyT(Matrix &A, vector<float> &x, vector<float> &y);
+int add_xyT(Matrix &A, vector<float> &x, vector<float> &y, const int iMax = -1);
 
 int product_AB(const Matrix &A, const Matrix &B, Matrix &AB, const bool transpose = false);
-vector<float> product_Ax(const Matrix &A, const vector<float> &x, const bool transpose = false);
+vector<float> product_Ax(const Matrix &A, const vector<float> &x, const bool transpose = false, const int iMax = -1);
 
 /**
  * @brief Compute C = A + B
@@ -137,6 +142,6 @@ vector<float> product_Ax(const Matrix &A, const vector<float> &x, const bool tra
 vector<float> add(const vector<float> &A, const vector<float> &B, bool minus = false);
 int add(const Matrix &A, const Matrix &B, Matrix &C, const bool minus = false);
 
-float dotProduct(const vector<float> x, const vector<float> y);
+float dotProduct(const vector<float> x, const vector<float> y, const int iMax = -1);
 
 #endif // UTILITIES_H_INCLUDED

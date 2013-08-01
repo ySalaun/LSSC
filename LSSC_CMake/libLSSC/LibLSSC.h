@@ -17,7 +17,6 @@
 #include <vector>
 #include <time.h>  
 
-#include "Main\params.h"
 #include "utilities.h"
 
 /**
@@ -34,5 +33,6 @@ void trainL1(Matrix &io_dict, const vector<float> &i_noisy, unsigned p_nPatch, c
 vector<int> randPatches(const int nPatch, const int nPatchMax);
 void updateDictionary(Matrix &D, const Matrix &A, const Matrix &B, const Parameters &params);
 vector<float> lars(const Matrix &p_dict, const vector<float> &p_patch, const Parameters &params);
+void updateGram(Matrix &invGs, Matrix &Gs, const unsigned iter);
 
 #endif // LIB_LSSC_H_INCLUDED

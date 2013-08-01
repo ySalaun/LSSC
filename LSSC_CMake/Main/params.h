@@ -40,6 +40,9 @@ struct Parameters{
 
 	// Update algorithm
 	unsigned update_iteration;	// TODO: Mairal seems to have set it to 1 (and 5 in batch case <== ?)
+
+  // Verbose option
+  bool verbose;
 };
 
 #endif // PARAMETERS_INCLUDED

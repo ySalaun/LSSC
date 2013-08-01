@@ -21,19 +21,52 @@
 
 using namespace std;
 
-int add_xyT(Matrix &A, vector<float> &x, vector<float> &y){
+void display(const char* msg,  const Parameters &params, bool endline){
+  if(params.verbose){
+    cout << msg;
+    if(endline){
+      cout << endl;
+    }
+  }
+}
+
+void display(const vector<float>& vec){
+  for(int i = 0; i< vec.size(); ++i){
+    cout << vec[i] << "/";
+  }
+  cout << endl;
+}
+
+void display(const Matrix & mat, const int iMax){
+  int m = (iMax == -1)? mat.nRow: iMax;
+  int n = (iMax == -1)? mat.nCol: iMax;
+  for(int i = 0; i< m; ++i){
+    for(int j = 0; j< n; ++j){
+      cout << mat.matrix[i*mat.nCol + j] << "/";
+    }
+    cout << endl;
+  }
+}
+
+int add_xyT(Matrix &A, vector<float> &x, vector<float> &y, const int iMax){
 	unsigned k = x.size();
 	unsigned m = y.size();
 	
 	// size issue
-	if(k*m != A.nCol*A.nRow){
+	if( (iMax == -1 && (k != A.nRow || m != A.nCol))
+    ||(iMax >=  0 && (k < iMax || m < iMax))){
 		cout << "size issue in function add_xyT" << endl;
 		return 0;
 	}
 
+  if(iMax > -1){
+    k = iMax;
+    m = iMax;
+  }
+
 	for(unsigned i = 0; i < k; ++i){
 		for(unsigned j = 0; j < m; ++j){
-			A.matrix[i*m + j] += x[i] * y[j];
+      A.matrix[i*A.nCol + j] += x[i] * y[j];
 		}
 	}
 
@@ -41,16 +74,15 @@ int add_xyT(Matrix &A, vector<float> &x, vector<float> &y){
 }
 
 int product_AB(const Matrix &A, const Matrix &B, Matrix &AB, const bool transpose){
-	// TODO: the transpose part
-  unsigned K = B.nRow;
+  unsigned K = (transpose)? A.nRow:A.nCol;
 
 	// size issue
-	if(A.nCol != K){
+	if(B.nRow != K){
 		cout << "size issue in function product_AB" << endl;
 		return 0;
 	}
 
-	unsigned m = A.nRow;
+	unsigned m = (transpose)? A.nCol:A.nRow;
 	unsigned n = B.nCol;
 	float sum;
 
@@ -58,13 +90,19 @@ int product_AB(const Matrix &A, const Matrix &B, Matrix &AB, const bool transpos
 		for(unsigned j = 0; j < n; ++j){
 			sum = 0.f;
 			for(unsigned k = 0; k < K; ++k){
-				sum += A.matrix[i*K + k]*B.matrix[k*n + j];
+        if(transpose){
+          sum += A.matrix[k*A.nCol + i]*B.matrix[k*B.nCol + j];
+        }
+        else{
+          sum += A.matrix[i*A.nCol + k]*B.matrix[k*B.nCol + j];
+        }
 			}
 			AB.matrix[i*n + j] = sum;
 		}
 		
 	}
 
+  // TODO keep it or change it code from Marc
 	/*std::vector<float> q0(K);
 	float * const pq0 = &q0[0];
 
@@ -93,16 +131,19 @@ int product_AB(const Matrix &A, const Matrix &B, Matrix &AB, const bool transpos
 	return 1;
 }
 
-vector<float> product_Ax(const Matrix &A, const vector<float> &x, const bool transpose){
+vector<float> product_Ax(const Matrix &A, const vector<float> &x, const bool transpose, const int iMax){
 	unsigned n = x.size();
 	
 	// size issue
-	if((A.nCol != n && !transpose) || (A.nRow != n && transpose)){
+	if( (iMax == -1 && ((A.nCol != n && !transpose) || (A.nRow != n && transpose)))
+    ||(iMax >=  0 && ((A.nCol < iMax && !transpose) || (A.nRow < iMax && transpose) || (n < iMax)))
+    ){
 		cout << "size issue in function product_Ax" << endl;
 		return vector<float>(n, 0.f);
 	}
 
 	unsigned m = (transpose)? A.nCol : A.nRow;
+  m = (iMax > -1 && m > iMax)? iMax:m;
 	vector<float> Ax(m, 0.f);
 	float sum;
 
@@ -110,10 +151,10 @@ vector<float> product_Ax(const Matrix &A, const vector<float> &x, const bool tra
 		sum = 0;
 		for(unsigned j = 0; j < n; ++j){
 			if(transpose){
-				sum += A.matrix[j*m + i]*x[j];
+        sum += A.matrix[j*A.nCol + i]*x[j];
 			}
 			else{
-				sum += A.matrix[i*n + j]*x[j];
+        sum += A.matrix[i*A.nCol + j]*x[j];
 			}
 		}
 		Ax[i] = sum;
@@ -153,14 +194,18 @@ int add(const Matrix &A, const Matrix &B, Matrix &C, const bool minus){
 	return 1;
 }
 
-float dotProduct(const vector<float> x, const vector<float> y){
+float dotProduct(const vector<float> x, const vector<float> y, const int iMax){
 	unsigned n = x.size();
 	
 	// size issue
-	if(n != y.size()){
+	if( (iMax == -1 && n != y.size()) 
+    ||(iMax >=  0 && (n < iMax || y.size() < iMax) )
+    ){
 		cout << "size issue in function dot product" << endl;
 		return 0.f;
 	}
+
+  n = (iMax > -1)? iMax : n;
 
 	float res = 0.f;
 	for(unsigned i = 0; i < n; ++i){

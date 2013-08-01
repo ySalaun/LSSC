@@ -62,40 +62,37 @@ int main(
 	Parameters params;
 	params.h = imSize.height;
 	params.w = imSize.width;
-	params.sPatch = 16;
+	params.sPatch = 2;//16;
 	params.m = params.sPatch * params.sPatch;
-	params.k = 512;
+	params.k = 10;//512;
 	params.nPatch = imSize.wh/params.m;
 	params.nRowPatches = params.w/params.sPatch;
 	params.nColPatches = params.h/params.sPatch;
 	params.reg = 1e7; // TODO: compute the real value
 	params.update_iteration = 1; // TODO see into Mairal's code
+  params.verbose = true;
 
   //! LSSC
   Matrix dict(params.m, params.k);
-	// PART 1
-  // LEARNING PART WITH LARS
+  srand (time(NULL));
+  for(int i=0; i<dict.matrix.size(); ++i){
+    dict.matrix[i] = (rand()%99)/100.f+0.01;
+  }
+  display("----------------------------------------------", params);
+  display("PART 1 - LEARNING PART WITH LARS", params);
   unsigned nRandomPatches = 10;//unsigned(floor(.2 * params.nPatch));
 	trainL1(dict, imNoisy, nRandomPatches, params);
   
-  // PART 2
-  // ORMP from KSVD
-
+  display("PART 2 - ORMP from KSVD", params);
   // TODO
 
-  // PART 3
-  // CLUSTERING
-
+  display("PART 3 - CLUSTERING", params);
   // TODO
 
-  // PART 4
-  // LEARNING WITH SIMULTANEOUS LARS
-
+   display("PART 4 - LEARNING WITH SIMULTANEOUS LARS", params);
   // TODO
 
-  // PART 5
-  // SIMULTANEOUS ORMP
-
+   display("PART 5 - SIMULTANEOUS ORMP", params);
   // TODO
 
 	for (unsigned c = 0; c < imSize.nChannels; c++) {
