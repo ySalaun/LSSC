@@ -15,7 +15,7 @@
 
 #include <stdlib.h>
 #include <vector>
-#include <time.h>  
+#include <time.h>
 
 #include "utilities.h"
 
@@ -27,12 +27,79 @@
  * @param p_nPatch : number of iid patches used for the update;
  * @param params : global parameters.
  *
- * @return
+ * @return none.
  **/
-void trainL1(Matrix &io_dict, const vector<float> &i_noisy, unsigned p_nPatch, const Parameters &params);
-vector<int> randPatches(const int nPatch, const int nPatchMax);
-void updateDictionary(Matrix &D, const Matrix &A, const Matrix &B, const Parameters &params);
-vector<float> lars(const Matrix &p_dict, const vector<float> &p_patch, const Parameters &params);
-void updateGram(Matrix &invGs, Matrix &Gs, const unsigned iter);
+void trainL1(
+    Matrix &io_dict,
+    const std::vector<float> &i_noisy,
+    const unsigned int p_nPatch,
+    const Parameters &params);
+
+
+/**
+ * @brief Get p_nb random number in a p_maxRange range. p_maxRange must be
+ *  superior to p_nb.
+ *
+ * @param p_nb : number of random number wanted;
+ * @param p_maxRange : range;
+ * @param o_randList : will contains the p_nb random numbers.
+ *
+ * @return none.
+ **/
+void getRandList(
+    const unsigned int p_nb,
+    const unsigned int p_maxRange,
+    std::vector<unsigned int> &o_randList);
+
+
+/**
+ * @brief Compute the LARS algorithm that minimizes
+ *      ||alpha||_1 s.t. ||i_noisy - dict*alpha||_2 < lambda
+ *
+ * @param p_dict : dictionary;
+ * @param p_patch : current patch;
+ * @param p_params : see Parameters;
+ * @param o_alpha : will contain the minimized coefficients.
+ *
+ * @return none.
+ **/
+void computeLars(
+    const Matrix &p_dict,
+    const std::vector<float> &p_patch,
+    const Parameters &p_params,
+    std::vector<float> &o_alpha);
+
+
+/**
+ * @brief Update the inverse of the Gram matrix.
+ *
+ * @param io_invGs : Gs^{-1}. Will be updated;
+ * @param i_Gs : Gram matrix;
+ * @param p_iter : current index.
+ *
+ * @return none.
+ **/
+void updateGram(
+    Matrix &io_invGs,
+    Matrix const& i_Gs,
+    const unsigned int p_iter);
+
+
+/**
+ * @brief Update the dictionary.
+ *
+ * @param io_D : dictionary which will be updated;
+ * @param i_A : ?
+ * @param i_B : ?
+ * @param p_params : see Parameters.
+ *
+ * @return none.
+ **/
+void updateDictionary(
+    Matrix &io_D,
+    const Matrix &i_A,
+    const Matrix &i_B,
+    const Parameters &params);
+
 
 #endif // LIB_LSSC_H_INCLUDED

@@ -15,9 +15,15 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "libIO/io_tiff.h"
-#include "libIO/io_png.h"
-#include "libIO/nan.h"
+#ifdef __linux__
+    #include "../libIO/io_tiff.h"
+    #include "../libIO/io_png.h"
+    #include "../libIO/nan.h"
+#else
+    #include "libIO/io_tiff.h"
+    #include "libIO/io_png.h"
+    #include "libIO/nan.h"
+#endif
 
 #include <algorithm>
 #include <sstream>
@@ -62,46 +68,38 @@ static bool has_nan(const float* im, size_t n)
 /// @min and @max are given (float values), they are to be mapped to 0 and 255
 /// respectively, with linear interpolation in-between. NaN pixels are mapped
 /// to a cyan value in the output image.
-int main(int argc, char** argv)
-{
-    if(argc != 3 && argc != 5) {
-        std::cerr << "Usage: " << argv[0] << " im_float.tif im.png [min max]" <<std::endl;
-        return 1;
+
+
+int convertTiff2Png(
+    const char* i_imNameTif,
+    const char* i_imNamePng,
+    const float p_min,
+    const float p_max) {
+
+    //! Read the input image
+    size_t w = 0, h = 0;
+    float* im = read_tiff_f32_gray(i_imNameTif, &w, &h);
+    if(!im) {
+        std::cerr << "Impossible to read float image " << i_imNameTif <<std::endl;
+        return EXIT_FAILURE;
     }
 
-    size_t w=0, h=0;
-    float* im = read_tiff_f32_gray(argv[1], &w, &h);
-    if(! im) {
-        std::cerr << "Impossible to read float image " << argv[1] <<std::endl;
-        return 1;
-    }
+    float a = p_min;
+    float b = p_max;
+    find_minmax(im, w * h, a, b);
+    std::cout << "min/max: " << a << " " << b << std::endl;
 
-    float a, b;
-    if(argc > 4) {
-        if(! (std::stringstream(argv[3]) >> a).eof()) {
-            std::cerr << "Unable to interpret " << argv[3]
-                      << " as min value"<<std::endl;
-            return 1;
-        }
-        if(! (std::stringstream(argv[4]) >> b).eof()) {
-            std::cerr << "Unable to interpret " << argv[4]
-                      << " as max value"<<std::endl;
-            return 1;
-        }
-    } else {
-        find_minmax(im, w*h, a, b);
-        std::cout << "min/max: " << a << " " << b << std::endl;
-    }
-
-    // Linear map from [a,b] to [256,0]: 256*(b-x)/(b-a)=(b-x)*(256/(b-a))
+    //! Linear map from [a,b] to [256,0]: 256*(b-x)/(b-a)=(b-x)*(256/(b-a))
     if(b <= a) {
-        a = -128.0f/a;
+        a = -128.0f / a;
         b = 0;
-    } else
-        a = 256.0f / (b-a);
+    }
+    else {
+        a = 256.0f / (b - a);
+    }
 
     const float* in = im;
-    const size_t n = (bTransparent? 2: 3) * w*h;
+    const size_t n = (bTransparent ? 2: 3) * w * h;
     unsigned char* out = new unsigned char[n];
     unsigned char *red=out, *green=out+w*h, *blue=out+2*w*h;
     for(size_t i=w*h; i>0; i--, in++, red++) {
@@ -120,8 +118,8 @@ int main(int argc, char** argv)
 
     bool bNaN = has_nan(im, w*h);
     const size_t channels = (bNaN? (bTransparent? 2: 3): 1);
-    if(write_png_u8(argv[2], out, w, h, channels) != 0) {
-        std::cerr << "Impossible to write png image " << argv[2] <<std::endl;
+    if(write_png_u8(i_imNamePng, out, w, h, channels) != 0) {
+        std::cerr << "Impossible to write png image " << i_imNamePng <<std::endl;
         return 1;
     }
 

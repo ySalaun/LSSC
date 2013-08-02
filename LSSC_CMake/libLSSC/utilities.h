@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, Yohann Salaun <yohann.salaun@polytechnique.org> & Marc Lebrun <marc.lebrun@cmla.ens-cachan.fr>
+ * Copyright (c) 2013, Yohann Salaun <yohann.salaun@polytechnique.org> & Marc Lebrun <marc.lebrun.ik@gmail.com>
  * All rights reserved.
  *
  * This program is free software: you can use, modify and/or
@@ -16,8 +16,13 @@
 #include <stdlib.h>
 #include <iostream>
 #include <vector>
+#include "LibMatrix.h"
 
-#include "Main\params.h"
+#ifdef __linux__
+    #include "../Main/params.h"
+#else
+    #include "Main/params.h"
+#endif
 
 using namespace std;
 
@@ -27,10 +32,10 @@ using namespace std;
 // where i is the row and j the column
 class Matrix{
 public:
-	int nRow, nCol;
+	unsigned int nRow, nCol; // no need to be integer
 	vector<float> matrix;
 
-	Matrix(int m, int n):	
+	Matrix(int m, int n):
     nRow(m),
 		nCol(n),
     matrix(n*m, 0.f)
@@ -52,7 +57,7 @@ public:
 	float& operator()(const unsigned i, const unsigned j){
     return matrix[i * nCol + j];
   }
-  
+
   // set a Matrix as a Gram Matrix version of the input
 	void setGram(const Matrix &D){
 		nRow = D.nCol;
@@ -99,7 +104,7 @@ public:
 		}
 	}
 
-	void symmetrizeUpperPart(int iMax){
+	void symmetrizeUpperPart(unsigned int iMax){ // no need to be an integer
 		if(nRow != nCol){
 			cout << "it is not a square matrix" << endl;
 		}

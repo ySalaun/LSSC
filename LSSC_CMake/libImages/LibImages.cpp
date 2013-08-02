@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, Marc Lebrun <marc.lebrun@cmla.ens-cachan.fr>
+ * Copyright (c) 2011, Marc Lebrun <marc.lebrun.ik@gmail.com>
  * All rights reserved.
  *
  * This program is free software: you can use, modify and/or
@@ -14,23 +14,29 @@
  * @file LibImages.cpp
  * @brief Usefull functions on images
  *
- * @author Marc Lebrun <marc.lebrun@cmla.ens-cachan.fr>
+ * @author Marc Lebrun <marc.lebrun.ik@gmail.com>
  **/
 
 #include "LibImages.h"
-#include "LibIO/io_png.h"
 #include "mt19937ar.h"
+#ifdef __linux__
+    #include "../libIO/io_png.h"
+#else
+    #include "libIO/io_png.h"
+#endif
 
 #define _USE_MATH_DEFINES
 #include <cmath>			// for M_PI
-#include <process.h>		// for getpid() function
+#ifndef __linux__
+    #include <process.h>		// for getpid() function
+#endif
 #include <iostream>
 #include <sstream>
 #include <stdlib.h>
 #include <math.h>
 #include <time.h>
 #ifdef _OPENMP
-#include <omp.h>
+    #include <omp.h>
 #endif
 
  using namespace std;
@@ -154,7 +160,11 @@ void addNoise(
 
 	//! Initialization
     o_imNoisy = i_im;
+#ifdef __linux__
+    mt_init_genrand((unsigned long int) time (NULL) + (unsigned long int) getpid());
+#else
     mt_init_genrand((unsigned long int) time (NULL) + (unsigned long int) _getpid());
+#endif
 
     //! Add noise
     for (unsigned k = 0; k < i_im.size(); k++) {

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, Marc Lebrun <marc.lebrun@cmla.ens-cachan.fr>
+ * Copyright (c) 2011, Marc Lebrun <marc.lebrun.ik@gmail.com>
  * All rights reserved.
  *
  * This program is free software: you can use, modify and/or
@@ -14,7 +14,11 @@
 
 #include <vector>
 #include <string>
-#include <FFTW/fftw3.h>
+#ifdef __linux__
+    #include <fftw3.h>
+#else
+    #include <FFTW/fftw3.h>
+#endif
 
 /**
  * @brief Structure containing size informations of an image.

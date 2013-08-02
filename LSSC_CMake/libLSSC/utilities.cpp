@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, Yohann Salaun <yohann.salaun@polytechnique.org> & Marc Lebrun <marc.lebrun@cmla.ens-cachan.fr>
+ * Copyright (c) 2013, Yohann Salaun <yohann.salaun@polytechnique.org> & Marc Lebrun <marc.lebrun.ik@gmail.com>
  * All rights reserved.
  *
  * This program is free software: you can use, modify and/or
@@ -14,7 +14,7 @@
  * @file utilities.cpp
  * @brief Side functions (matrices operations...) for LSSC algorithm
  *
- * @author Yohann Salaun <yohann.salaun@polytechnique.org> & Marc Lebrun <marc.lebrun@cmla.ens-cachan.fr>
+ * @author Yohann Salaun <yohann.salaun@polytechnique.org> & Marc Lebrun <marc.lebrun.ik@gmail.com>
  **/
 
 #include "utilities.h"
@@ -31,7 +31,7 @@ void display(const char* msg,  const Parameters &params, bool endline){
 }
 
 void display(const vector<float>& vec){
-  for(int i = 0; i< vec.size(); ++i){
+  for(unsigned int i = 0; i< vec.size(); ++i){
     cout << vec[i] << "/";
   }
   cout << endl;
@@ -49,12 +49,12 @@ void display(const Matrix & mat, const int iMax){
 }
 
 int add_xyT(Matrix &A, vector<float> &x, vector<float> &y, const int iMax){
-	unsigned k = x.size();
-	unsigned m = y.size();
-	
+	unsigned int k = x.size();
+	unsigned int m = y.size();
+
 	// size issue
 	if( (iMax == -1 && (k != A.nRow || m != A.nCol))
-    ||(iMax >=  0 && (k < iMax || m < iMax))){
+    ||(iMax >=  0 && (k < (unsigned int) iMax || m < (unsigned int) iMax))){
 		cout << "size issue in function add_xyT" << endl;
 		return 0;
 	}
@@ -64,8 +64,8 @@ int add_xyT(Matrix &A, vector<float> &x, vector<float> &y, const int iMax){
     m = iMax;
   }
 
-	for(unsigned i = 0; i < k; ++i){
-		for(unsigned j = 0; j < m; ++j){
+	for(unsigned int i = 0; i < k; ++i){
+		for(unsigned int j = 0; j < m; ++j){
       A.matrix[i*A.nCol + j] += x[i] * y[j];
 		}
 	}
@@ -99,14 +99,14 @@ int product_AB(const Matrix &A, const Matrix &B, Matrix &AB, const bool transpos
 			}
 			AB.matrix[i*n + j] = sum;
 		}
-		
+
 	}
 
   // TODO keep it or change it code from Marc
 	/*std::vector<float> q0(K);
 	float * const pq0 = &q0[0];
 
-	for (unsigned i = 0; i < n; i++) 
+	for (unsigned i = 0; i < n; i++)
 	{
 		const float *pB = &B.matrix[i];
 		for (unsigned k = 0; k < K; k++, pB += n)
@@ -132,18 +132,19 @@ int product_AB(const Matrix &A, const Matrix &B, Matrix &AB, const bool transpos
 }
 
 vector<float> product_Ax(const Matrix &A, const vector<float> &x, const bool transpose, const int iMax){
-	unsigned n = x.size();
-	
+	unsigned int n = x.size();
+
 	// size issue
 	if( (iMax == -1 && ((A.nCol != n && !transpose) || (A.nRow != n && transpose)))
-    ||(iMax >=  0 && ((A.nCol < iMax && !transpose) || (A.nRow < iMax && transpose) || (n < iMax)))
+    ||(iMax >=  0 && ((A.nCol < (unsigned int) iMax && !transpose)
+    || (A.nRow < (unsigned int) iMax && transpose) || (n < (unsigned int) iMax)))
     ){
 		cout << "size issue in function product_Ax" << endl;
 		return vector<float>(n, 0.f);
 	}
 
-	unsigned m = (transpose)? A.nCol : A.nRow;
-  m = (iMax > -1 && m > iMax)? iMax:m;
+	unsigned int m = (transpose)? A.nCol : A.nRow;
+    m = (iMax > -1 && m > (unsigned int) iMax)? (unsigned int) iMax : m;
 	vector<float> Ax(m, 0.f);
 	float sum;
 
@@ -196,16 +197,16 @@ int add(const Matrix &A, const Matrix &B, Matrix &C, const bool minus){
 
 float dotProduct(const vector<float> x, const vector<float> y, const int iMax){
 	unsigned n = x.size();
-	
+
 	// size issue
-	if( (iMax == -1 && n != y.size()) 
-    ||(iMax >=  0 && (n < iMax || y.size() < iMax) )
+	if( (iMax == -1 && n != y.size())
+    ||(iMax >=  0 && (n < (unsigned int) iMax || y.size() < (unsigned int) iMax) )
     ){
 		cout << "size issue in function dot product" << endl;
 		return 0.f;
 	}
 
-  n = (iMax > -1)? iMax : n;
+    n = (iMax > -1) ? iMax : n;
 
 	float res = 0.f;
 	for(unsigned i = 0; i < n; ++i){
@@ -213,4 +214,3 @@ float dotProduct(const vector<float> x, const vector<float> y, const int iMax){
 	}
 	return res;
 }
-    
