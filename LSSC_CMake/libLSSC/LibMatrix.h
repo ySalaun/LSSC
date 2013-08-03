@@ -15,5 +15,9 @@
 
 #include <vector>
 
+#include "ClassMatrix.h"
+
+
+
 
 #endif // LIBMATRIX_H_INCLUDED

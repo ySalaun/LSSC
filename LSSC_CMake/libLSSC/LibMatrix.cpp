@@ -17,4 +17,18 @@
  * @author Yohann Salaun <yohann.salaun@polytechnique.org> & Marc Lebrun <marc.lebrun.ik@gmail.com>
  **/
 
- #include "LibMatrix.h"
+#include "LibMatrix.h"
+
+using namespace std;
+
+
+
+
+
+
+
+
+
+
+
+

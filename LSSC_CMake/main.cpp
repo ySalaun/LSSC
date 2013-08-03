@@ -24,6 +24,7 @@
 
 #include "libImages/LibImages.h"
 #include "libLSSC/LibLSSC.h"
+#include "libLSSC/LibMatrix.h" // to delete
 
 using namespace std;
 
@@ -31,6 +32,22 @@ int main(
     int argc
 ,   char **argv
 ){
+    /** For test **/
+	Matrix2 mat(3, 3, 7.f);
+	Matrix2 tmp(3, 2, 5.f);
+	mat(0, 0) = 1.f;
+	mat(0, 1) = 2.f;
+	mat(1, 0) = 3.f;
+	mat(1, 1) = 4.f;
+	mat(2, 0) = 5.f;
+	mat(2, 1) = 6.f;
+	mat.print();
+	mat.symmetrizeUpperPart(3);
+    mat.print();
+
+    return EXIT_SUCCESS;
+	/** End test **/
+
     //! Check if there is the right call for the algorithm
 	if (argc < 9) {
 		cout << "usage: LSSC image sigma noisy denoised difference \

@@ -25,6 +25,10 @@
 				</Compiler>
 				<Linker>
 					<Add option="-s" />
+					<Add library="/usr/lib/i386-linux-gnu/libpng.so" />
+					<Add library="/usr/lib/libfftw3f.so" />
+					<Add library="/usr/lib/gcc/i686-linux-gnu/4.6.3/libgomp.so" />
+					<Add library="/usr/lib/i386-linux-gnu/libtiff.so" />
 				</Linker>
 			</Target>
 		</Build>
@@ -32,6 +36,35 @@
 			<Add option="-Wall" />
 			<Add option="-fexceptions" />
 		</Compiler>
+		<Unit filename="Main/params.h" />
+		<Unit filename="convert/convert.cpp" />
+		<Unit filename="libIO/draw.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libIO/draw.h" />
+		<Unit filename="libIO/io_png.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libIO/io_png.h" />
+		<Unit filename="libIO/io_tiff.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libIO/io_tiff.h" />
+		<Unit filename="libIO/nan.h" />
+		<Unit filename="libImages/LibImages.cpp" />
+		<Unit filename="libImages/LibImages.h" />
+		<Unit filename="libImages/mt19937ar.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libImages/mt19937ar.h" />
+		<Unit filename="libLSSC/ClassMatrix.cpp" />
+		<Unit filename="libLSSC/ClassMatrix.h" />
+		<Unit filename="libLSSC/LibLSSC.cpp" />
+		<Unit filename="libLSSC/LibLSSC.h" />
+		<Unit filename="libLSSC/LibMatrix.cpp" />
+		<Unit filename="libLSSC/LibMatrix.h" />
+		<Unit filename="libLSSC/utilities.cpp" />
+		<Unit filename="libLSSC/utilities.h" />
 		<Unit filename="main.cpp" />
 		<Extensions>
 			<code_completion />
