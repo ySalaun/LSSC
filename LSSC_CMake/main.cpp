@@ -33,17 +33,35 @@ int main(
 ,   char **argv
 ){
     /** For test **/
-	Matrix2 mat(3, 3, 7.f);
+	Matrix2 mat(3, 2, 7.f);
 	Matrix2 tmp(3, 2, 5.f);
+	vector<float> x(3);
+	vector<float> y(2);
 	mat(0, 0) = 1.f;
 	mat(0, 1) = 2.f;
 	mat(1, 0) = 3.f;
 	mat(1, 1) = 4.f;
 	mat(2, 0) = 5.f;
 	mat(2, 1) = 6.f;
+	tmp(0, 0) = 7.f;
+	tmp(0, 1) = 1.f;
+	tmp(1, 0) = 2.f;
+	tmp(1, 1) = 3.f;
+	x[0] = 1.f;
+	x[1] = 2.f;
+	x[2] = 0.f;
+	y[0] = 3.f;
+	y[1] = 2.f;
 	mat.print();
-	mat.symmetrizeUpperPart(3);
-    mat.print();
+	tmp.print();
+	Matrix2 res;
+	vector<float> z;
+	dotProduct(mat, tmp, res);
+    res.print();
+    /*for (unsigned n = 0; n < z.size(); n++) {
+        cout << z[n] << " ";
+    }
+    cout << endl;*/
 
     return EXIT_SUCCESS;
 	/** End test **/
