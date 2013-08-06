@@ -49,6 +49,20 @@ int productAB(
     Matrix2 &o_C);
 
 /**
+ * @brief Compute C = At * B, classic matrix product.
+ *
+ * @param i_A : matrix of size n x m;
+ * @param i_B : matrix of size n x o;
+ * @param o_C : will contain i_At * i_B of size m x o.
+ *
+ * @return EXIT_FAILURE in case of size problem, EXIT_SUCCESS otherwise.
+ **/
+int productAtB(
+    Matrix2 const& i_A,
+    Matrix2 const& i_B,
+    Matrix2 &o_C);
+
+/**
  * @brief Compute C = A * Bt, classic matrix product.
  *
  * @param i_A : matrix of size m x n;
@@ -132,7 +146,7 @@ int add(
 
 
 /**
- * @brief Compute the dot product C = A .* B
+ * @brief Compute the termwise product C = A .* B
  *
  * @param i_A : matrix of size m x n;
  * @param i_B : matrix of size m x n;
@@ -159,7 +173,7 @@ int dotProduct(
 int dotProduct(
     std::vector<float> const& i_x,
     std::vector<float> const& i_y,
-    std::vector<float> &o_z,
+    float &o_z,
     const int p_max = -1);
 
 

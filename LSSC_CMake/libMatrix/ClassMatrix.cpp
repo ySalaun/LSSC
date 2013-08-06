@@ -101,6 +101,12 @@ float& Matrix2::operator()(
     return m_mat[p_i * m_col + p_j];
 }
 
+float Matrix2::operator()(
+    const unsigned int p_i,
+    const unsigned int p_j)
+    const {
+    return m_mat[p_i * m_col + p_j];
+}
 
 //! Get the transpose of a matrix.
 void Matrix2::setTranspose(
@@ -174,16 +180,29 @@ void Matrix2::copyRow(
 //! Return the row of a matrix
 void Matrix2::getRow(
     std::vector<float> &o_row,
-    const unsigned int p_row) const{
-    if (o_row.size() < m_col) {
-        o_row.resize(m_col);
-    }
+    const unsigned int p_row) const {
 
     const float* mM = &m_mat[p_row * m_col];
     float* iR       = &o_row[0];
 
-    for (unsigned int j = 0; j < m_col; j++) {
+    for (unsigned int j = 0; j < o_row.size(); j++) {
         iR[j] = mM[j];
+    }
+}
+
+//! Copy a column of another matrix into this one
+void Matrix2::copyCol(
+    Matrix2 const& i_mat,
+    const unsigned int p_colFrom,
+    const unsigned int p_colTo) {
+
+    if(m_row != i_mat.m_row) {
+        cerr << "copyCol : Error in row size" << endl;
+    }
+    else {
+        for (unsigned int j = 0; j < m_row; j++) {
+            m_mat[j * m_row + p_colFrom] = i_mat.m_mat[j * m_row + p_colTo];
+        }
     }
 }
 

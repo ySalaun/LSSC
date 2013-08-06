@@ -118,6 +118,45 @@ int productAB(
     return EXIT_SUCCESS;
 }
 
+/**
+ * @brief Compute C = At * B, classic matrix product.
+ *
+ * @param i_A : matrix of size n x m;
+ * @param i_B : matrix of size n x o;
+ * @param o_C : will contain i_At * i_B of size m x o.
+ *
+ * @return EXIT_FAILURE in case of size problem, EXIT_SUCCESS otherwise.
+ **/
+int productAtB(
+    Matrix2 const& i_A,
+    Matrix2 const& i_B,
+    Matrix2 &o_C) {
+
+    //! Initialization
+    unsigned int m, n, p, q;
+    i_A.getSize(n, m);
+    i_B.getSize(p, q);
+    o_C.setSize(m, q);
+
+    if (n != p) {
+        cerr << "productAB - error : size of matrix aren't consistant" << endl;
+        return EXIT_FAILURE;
+    }
+
+    //! Compute the matrix product
+    for (unsigned int i = 0; i < m; i++) {
+        for (unsigned int j = 0; j < q; j++) {
+            float sum = 0.f;
+            for (unsigned int k = 0; k < n; k++) {
+                sum += ((Matrix2) i_A)(k, i) * i_B(k, j);
+            }
+            o_C(i, j) = sum;
+        }
+    }
+
+    return EXIT_SUCCESS;
+}
+
 
 /**
  * @brief Compute C = A * Bt, classic matrix product.
@@ -379,14 +418,12 @@ int dotProduct(
 int dotProduct(
     std::vector<float> const& i_x,
     std::vector<float> const& i_y,
-    std::vector<float> &o_z,
+    float &o_z,
     const int p_max) {
 
     //! Initialization
     const unsigned int m = (p_max > -1 ? p_max : i_x.size());
-    if (o_z.size() != m) {
-        o_z.resize(m);
-    }
+    o_z = 0;
 
     //! Check size
     if (i_x.size() != i_y.size() || p_max > (int) i_x.size()) {
@@ -396,7 +433,7 @@ int dotProduct(
 
     //! Compute the dot product
     for (unsigned int i = 0; i < m; i++) {
-        o_z[i] = i_x[i] * i_y[i];
+        o_z += i_x[i] * i_y[i];
     }
 
     return EXIT_SUCCESS;

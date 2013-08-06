@@ -52,6 +52,11 @@ class Matrix2
             const unsigned int p_i,
             const unsigned int p_j);
 
+        float operator() (
+            const unsigned int p_i,
+            const unsigned int p_j)
+            const;
+
         //! Set the Gram matrix of the input one.
         void setGramMatrix(
             Matrix2 const& i_mat);
@@ -66,10 +71,17 @@ class Matrix2
             const unsigned int p_rowFrom,
             const unsigned int p_rowTo);
 
-        //! Return the row of a matrix
+        //! Fill a vector with the first elements of the row of a matrix
         void getRow(
             std::vector<float> &o_row,
-            const unsigned int p_row) const;
+            const unsigned int p_row)
+            const;
+
+        //! Copy a column of another matrix into this one
+        void copyCol(
+            Matrix2 const& i_mat,
+            const unsigned int p_colFrom,
+            const unsigned int p_colTo);
 
         //! Symmetrize in-place the upper part of the matrix
         void symmetrizeUpperPart(

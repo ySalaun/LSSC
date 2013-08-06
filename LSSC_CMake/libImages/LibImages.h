@@ -14,11 +14,6 @@
 
 #include <vector>
 #include <string>
-#ifdef __linux__
-    #include <fftw3.h>
-#else
-    #include <FFTW/fftw3.h>
-#endif
 
 /**
  * @brief Structure containing size informations of an image.

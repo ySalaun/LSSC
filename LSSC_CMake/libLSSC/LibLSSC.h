@@ -18,6 +18,7 @@
 #include <time.h>
 
 #include "utilities.h"
+#include "libMatrix\LibMatrix.h"
 
 /**
  * @brief Update the dictionnary with the l1 norm
@@ -30,7 +31,7 @@
  * @return none.
  **/
 void trainL1(
-    Matrix &io_dict,
+    Matrix2 &io_dict,
     const std::vector<float> &i_noisy,
     const unsigned int p_nPatch,
     const Parameters &params);
@@ -64,7 +65,7 @@ void getRandList(
  * @return none.
  **/
 void computeLars(
-    const Matrix &p_dict,
+    const Matrix2 &p_dict,
     const std::vector<float> &p_patch,
     const Parameters &p_params,
     std::vector<float> &o_alpha);
@@ -80,8 +81,8 @@ void computeLars(
  * @return none.
  **/
 void updateGram(
-    Matrix &io_invGs,
-    Matrix const& i_Gs,
+    Matrix2 &io_invGs,
+    const Matrix2 & i_Gs,
     const unsigned int p_iter);
 
 
@@ -96,9 +97,9 @@ void updateGram(
  * @return none.
  **/
 void updateDictionary(
-    Matrix &io_D,
-    const Matrix &i_A,
-    const Matrix &i_B,
+    Matrix2 &io_D,
+    const Matrix2 &i_A,
+    const Matrix2 &i_B,
     const Parameters &params);
 
 

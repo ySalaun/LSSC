@@ -30,7 +30,7 @@ using namespace std;
 
 //! train the algorithm with the L1 norm
 void trainL1(
-    Matrix &io_dict,
+    Matrix2 &io_dict,
     const std::vector<float> &i_imNoisy,
     const unsigned int p_nPatch,
     const Parameters &params){
@@ -40,8 +40,8 @@ void trainL1(
     const unsigned int w  = params.w;
 
     //! matrices used for the dictionnary update
-    Matrix A(params.k, params.k);
-    Matrix B(params.m, params.k);
+    Matrix2 A(params.k, params.k);
+    Matrix2 B(params.m, params.k);
 
     //! sparse coefficients of the dictionnary
     vector<float> alpha(params.k, 0.f);
@@ -71,8 +71,8 @@ void trainL1(
         vector<float> alpha;
         computeLars(io_dict, patch, params, alpha);
 
-        add_xyT(A, alpha, alpha);
-        add_xyT(B, patch, alpha);
+        addXYt(A, alpha, alpha);
+        addXYt(B, patch, alpha);
 
         //! Update
         display("- dictionary update", params, false);
@@ -109,7 +109,7 @@ void getRandList(
 
 //! lars algorithm that minimizes ||alpha||_1 s.t. ||i_noisy - dict*alpha||_2 < lambda
 void computeLars(
-    const Matrix &p_dict,
+    const Matrix2 &p_dict,
     const std::vector<float> &p_patch,
     const Parameters &p_params,
     std::vector<float> &o_alpha){
@@ -126,14 +126,16 @@ void computeLars(
     vector<int> activeIndexes(0);
 
     //! noisy picture norm
-    float norm = dotProduct(p_patch, p_patch);
+    float norm;
+    dotProduct(p_patch, p_patch, norm);
     //! if the norm is lower than the regularization parameter, stop the algorithm
     if (norm > reg) {
         return;
     }
 
     //! most correlated element
-    vector<float> correlation = product_Ax(p_dict, p_patch, true);
+    vector<float> correlation;
+    productAtx(p_dict, p_patch, correlation);
     float cMax = abs(correlation[0]);
     unsigned int currentIndex = 0;
     for (unsigned int n = 1; n < correlation.size(); n++) {
@@ -147,11 +149,11 @@ void computeLars(
     bool newAtom = true;
 
     //! matrices parameters
-    Matrix G    (nb, nb);
-    Matrix Ga   (nb, nb);
-    Matrix Gs   (nb, nb);
-    Matrix invGs(nb, nb);
-    product_AB(p_dict, p_dict, G, true);
+    Matrix2 G    (nb, nb);
+    Matrix2 Ga   (nb, nb);
+    Matrix2 Gs   (nb, nb);
+    Matrix2 invGs(nb, nb);
+    productAtB(p_dict, p_dict, G);
 
     //! add the new most correlated element at each iteration
     for (unsigned int i = 0; i < nb; i++) {
@@ -180,7 +182,8 @@ void computeLars(
 
         //! compute direction vector
         //! Ua = invGs * sgn
-        vector<float> Ua = product_Ax(invGs, sgn, false, i + 1);
+        vector<float> Ua;
+        productAx(invGs, sgn, Ua, i + 1);
         display("Ua: ", p_params, false);
         display(Ua);
         display("Gs: ", p_params, false);
@@ -191,10 +194,11 @@ void computeLars(
         //! STEP
         display("-- compute step", p_params);
         float step = INFINITY;
-        //float value; // c'est une variable locale, ça sert à rien de la déclarer ici
+
         //! current maximum of correlation
         cMax = correlation[0];
-        vector<float> tGaUa = product_Ax(Ga, Ua, true, i + 1);
+        vector<float> tGaUa;
+        productAtx(Ga, Ua, tGaUa, i + 1);
 
         for (unsigned int j = 0; j <= i; j++) {
             tGaUa[activeIndexes[j]] = INFINITY;
@@ -226,25 +230,24 @@ void computeLars(
         //! if this step is reached, downdate
         float stepDowndate = INFINITY;
         //! Marc: WARNING : indexDowndate not used after that !!!
-        //int indexDowndate;
+        //! Yohann:the function is not defined for now
+        int indexDowndate;
         for (unsigned int j = 0; j <= i; j++) {
             const float ratio = -o_alpha[i] / Ua[i];
             if (ratio < stepDowndate && ratio >= 0) {
                 stepDowndate = ratio;
-                //indexDowndate = j;
+                indexDowndate = j;
             }
-        }
-        if (stepDowndate < 0) {
-            cout << "step downdate sign issue" << endl;
-            //! Marc: il manque pas un truc là ?
         }
 
         //! STOPPING STEP
         display("-- compute stopping step", p_params);
         cout << sgn.size() << "/" << Ua.size() << "/" << correlation.size() << "/" << i + 1 << endl;
-        const float a = dotProduct(sgn, Ua);
-        const float b = dotProduct(correlation, Ua, i + 1);
-        const float c = norm - reg;
+        float a, b, c;
+        dotProduct(sgn, Ua, a);
+        dotProduct(correlation, Ua, a, i + 1);
+        c = norm - reg;
+
         const float delta = b * b - a * c;
         const float stepStop = min((delta > 0)? (b - sqrtf(delta)) / a : INFINITY, cMax);
 
@@ -265,6 +268,7 @@ void computeLars(
             norm < EPSILON				||
             norm - reg < EPSILON	){
             //! Marc: pourquoi ce break est commenté ? à quoi sert ce test du coup ?
+            //! Yohann: phase de test, les params sont pas très adaptés
             //break;
         }
         cout << "final step " << finalStep << endl;
@@ -283,32 +287,37 @@ void computeLars(
 
 //! Update the inverse of the Gram matrix
 void updateGram(
-    Matrix &io_invGs,
-    Matrix const& i_Gs,
+    Matrix2 &io_invGs,
+    Matrix2 const& i_Gs,
     const unsigned int p_iter){
 
     //! case when the matrix is 1x1
     if (p_iter == 0) {
-        cout << "beware:" << i_Gs.matrix[0] << endl;
-        io_invGs.matrix[0] = 1.f / i_Gs.matrix[0];
+        // TODO fix the div by zero issue
+        cout << "beware:" << i_Gs(0, 0) << endl;
+        io_invGs(0, 0) = 1.f / i_Gs(0, 0);
     }
     //! General case
     else {
         //! iRow = Gs[i-th row]
-        vector<float> iRow = ((Matrix&) i_Gs).row(p_iter, p_iter);
+        vector<float> iRow(p_iter, 0);
+        i_Gs.getRow(iRow, p_iter);
         cout << "iRow: ";
         display(iRow);
 
         //! u = Gs^-1 Gs[i-th row]
-        vector<float> u = product_Ax(io_invGs, iRow, false, p_iter);
+        vector<float> u;
+        productAx(io_invGs, iRow, u, p_iter);
         cout << "u: ";
         display(u);
 
         //! sigma = 1/(Gs_ii - u. Gs[i-th row])
-        const float sigma = 1.f / (((Matrix&)i_Gs)(p_iter, p_iter) - dotProduct(u, iRow));
+        float uGs;
+        dotProduct(u, iRow, uGs);
+        const float sigma = 1.f / (i_Gs(p_iter, p_iter) - uGs);
         cout << "sigma: " << sigma << endl;
 
-        //!Gs^-1_iter,iter = sigma;
+        //! Gs^-1_iter,iter = sigma;
         io_invGs(p_iter, p_iter) = sigma;
 
         //! Gs^-1[i-th row] = - sigma u
@@ -317,45 +326,38 @@ void updateGram(
         }
 
         //! Gs^-1 = Gs^-1 + sigma u u^t
-        add_xyT(io_invGs, u, u, p_iter);
+        addXYt(io_invGs, u, u, p_iter);
     }
 }
 
 //! dictionary update algorithm
 // Marc : travailler sur u^t tout du long, afin d'optimiser les boucles !!
 void updateDictionary(
-    Matrix &io_D,
-    const Matrix &i_A,
-    const Matrix &i_B,
+          Matrix2 &io_D,
+    const Matrix2 &i_A,
+    const Matrix2 &i_B,
     const Parameters &params){
 
     //! D = Matrix(D.nRow, D.nCol);
     for(unsigned int iter = 0; iter < params.updateIteration; iter++) {
 
         //! u = DA
-        Matrix u(params.m, params.k);
-        product_AB(io_D, i_A, u);
+        Matrix2 u(params.m, params.k);
+        productAB(io_D, i_A, u);
 
         //! u = B - u
         add(i_B, u, u, true);
 
         //! uj = uj/ajj for each column j of u
         for (unsigned int j = 0; j < params.k; j++) {
-            for (unsigned int i = 0; i < params.m; i++) {
-                // TODO Beware, this condition should really be there ?
-                if (i_A.matrix[j * params.k + j] != 0){
-                    u.matrix[i * params.k + j] /= i_A.matrix[j * params.k + j];
-                }
-            }
-        }
-        /*for (unsigned int j = 0; j < params.k; j++) {
+          // TODO Beware, this condition should really be there ?
             if (i_A(j, j) != 0) {
                 const float ajjInv = 1.f / i_A(j ,j);
                 for (unsigned int i = 0; i < params.m; i++) {
                     u(i, j) *= ajjInv;
                 }
             }
-        }*/
+        }
 
         //! u = u + D
         add(u, io_D, u);
@@ -365,13 +367,13 @@ void updateDictionary(
             float norm2 = 0.f;
 
             for (unsigned int i = 0; i < params.m; i++) {
-                norm2 += u.matrix[i * params.k + j] * u.matrix[i * params.k + j];
+                norm2 += u(i, j) * u(i, j);
             }
 
             if (norm2 > 1.f) {
                 const float norm2Inv = 1.f / sqrtf(norm2);
                 for (unsigned int i = 0; i < params.m; i++) {
-                    u.matrix[i * params.k + j] *= norm2Inv;
+                    u(i, j) *= norm2Inv;
                 }
             }
         }
