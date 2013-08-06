@@ -16,12 +16,13 @@
 #include <stdlib.h>
 #include <iostream>
 #include <vector>
-#include "LibMatrix.h"
 
 #ifdef __linux__
     #include "../Main/params.h"
+    #include "../libMatrix/LibMatrix.h"
 #else
     #include "Main/params.h"
+    #include "libMatrix/LibMatrix.h"
 #endif
 
 using namespace std;

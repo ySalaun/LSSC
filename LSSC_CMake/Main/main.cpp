@@ -69,7 +69,7 @@ int main(
 	params.nRowPatches = params.w/params.sPatch;
 	params.nColPatches = params.h/params.sPatch;
 	params.reg = 1e7; // TODO: compute the real value
-	params.update_iteration = 1; // TODO see into Mairal's code
+	params.updateIteration = 1; // TODO see into Mairal's code
   params.verbose = true;
 
   //! LSSC
