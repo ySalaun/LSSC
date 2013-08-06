@@ -53,7 +53,7 @@
  **/
 int loadImage(
     char* p_name
-,   std::vector<float> &o_im
+,   vector<float> &o_im
 ,   ImageSize &o_imSize
 ,   const bool p_verbose
 ){
@@ -114,7 +114,7 @@ int loadImage(
  **/
 int saveImage(
     char* p_name
-,   std::vector<float> const& i_im
+,   vector<float> const& i_im
 ,   const ImageSize &p_imSize
 ,   const float p_min
 ,   const float p_max
@@ -149,8 +149,8 @@ int saveImage(
  * @return none.
  **/
 void addNoise(
-    std::vector<float> const& i_im
-,   std::vector<float> &o_imNoisy
+    vector<float> const& i_im
+,   vector<float> &o_imNoisy
 ,   const float p_sigma
 ,   const bool p_verbose
 ){
@@ -192,8 +192,8 @@ void addNoise(
  * @return EXIT_FAILURE if both images haven't the same size.
  **/
 int computePsnr(
-    std::vector<float> const& i_im1
-,   std::vector<float> const& i_im2
+    vector<float> const& i_im1
+,   vector<float> const& i_im2
 ,   float &o_psnr
 ,   float &o_rmse
 ,   const char* p_imageName
@@ -234,9 +234,9 @@ int computePsnr(
  * @return EXIT_FAILURE if i_im1 and i_im2 don't have the same size.
  **/
 int computeDiff(
-    std::vector<float> const& i_im1
-,   std::vector<float> const& i_im2
-,   std::vector<float> &o_imDiff
+    vector<float> const& i_im1
+,   vector<float> const& i_im2
+,   vector<float> &o_imDiff
 ,   const float p_min
 ,   const float p_max
 ,   const bool p_verbose
