@@ -16,7 +16,9 @@ SET imgBias=%pathfile%\Images\%name%_bias.%extension%
 SET imgDiffBias=%pathfile%\Images\%name%_diff_bias.%extension%
 :: ARG 8 ==> boolean for bias
 SET doBias=0
+:: ARG 9 ==> dictionary in txt file
+SET dictPath=%pathfile%\LSSC_Dictionaries\dict_n9.txt
 
-SET cmd=%execfile% %img% %sigma% %imgNoisy% %imgFinal% %imgDiff% %imgBias% %imgDiffBias% %doBias%
+SET cmd=%execfile% %img% %sigma% %imgNoisy% %imgFinal% %imgDiff% %imgBias% %imgDiffBias% %doBias% %dictPath%
 
 start %cmd%

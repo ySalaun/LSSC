@@ -200,8 +200,8 @@ void Matrix2::copyCol(
       cerr << "copyCol : Error in row size" << endl;
     }
     else {
-      for (unsigned int j = 0; j < m_row; j++) {
-        m_mat[j * m_col + p_colTo] = i_mat.m_mat[j * m_col + p_colFrom];
+      for (unsigned int i = 0; i < m_row; i++) {
+        m_mat[i * m_col + p_colTo] = i_mat.m_mat[i * m_col + p_colFrom];
       }
     }
 }

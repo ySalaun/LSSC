@@ -18,6 +18,7 @@
 **/
 
 #include <iostream>
+#include <fstream>
 #include <stdlib.h>
 #include <math.h>
 #include <ctime>
@@ -32,9 +33,9 @@ int main(
   ,   char **argv
   ){
     //! Check if there is the right call for the algorithm
-    if (argc < 9) {
+    if (argc < 10) {
       cout << "usage: LSSC image sigma noisy denoised difference \
-              bias diff_bias computeBias" << endl;
+              bias diff_bias computeBias dict.txt" << endl;
       return EXIT_FAILURE;
     }
 
@@ -62,28 +63,45 @@ int main(
     Parameters params;
     params.h = imSize.height;
     params.w = imSize.width;
-    params.sPatch = 2;//16;
+    params.sPatch = 9;
     params.m = params.sPatch * params.sPatch;
-    params.k = 10;//512;
+    params.k = 512;
     params.nPatch = imSize.wh/params.m;
     params.nRowPatches = params.w/params.sPatch;
     params.nColPatches = params.h/params.sPatch;
     params.reg = 1e7; // TODO: compute the real value
-    params.updateIteration = 1; // TODO see into Mairal's code
+    params.updateIteration = 1; // TODO Mairal used this parameter as default
     params.verbose = true;
 
-    //! LSSC
+    //! read initial dictionary
     Matrix2 dict(params.m, params.k);
-    srand(unsigned int(time(time_t(NULL))));
+    ifstream txtDict(argv[9], ios::in);
+    /*char c = txtDict.get();
+    int index = 0;
+    string line;
+    /*while (getline(txtDict, line)) {
+      int i = index/params.k;
+      int j = index - i*params.k;
+      cout << i << "/" << j << endl;
+      cout << line << endl;
+      //dict(i, j);
+      index ++;
+    }*/
+
+    for(unsigned int j = 0; j < params.k; j++){
     for(unsigned int i = 0; i < params.m; i++){
-      for(unsigned int j = 0; j < params.k; j++){
-        dict(i, j) = float((rand()%99)/100.f+0.01);
+      
+       txtDict >> dict(i, j);
       }
     }
+
+    cout << dict(43, 259) << "/" <<dict(22, 285) << "/" << dict(67,133) << endl;
+
+    //! LSSC
     display("----------------------------------------------", params);
     display("PART 1 - LEARNING PART WITH LARS", params);
-    unsigned nRandomPatches = 10;//unsigned(floor(.2 * params.nPatch));
-    trainL1(dict, imNoisy, nRandomPatches, params);
+    unsigned nRandomPatches = 50;//unsigned(floor(.2 * params.nPatch));
+    //trainL1(dict, imNoisy, nRandomPatches, params);
 
     display("PART 2 - ORMP from KSVD", params);
     // TODO

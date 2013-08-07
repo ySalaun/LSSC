@@ -121,13 +121,20 @@ The algorithm corresponds then to the minimization of eq.\ref{sparseDict} on the
 \textbf{Output} : updated dictionary \textbf{\dict} \\
 \Repeat{convergence}{
 	\For{ j = 1..\dsize}{
-		update the $j^{th}$ column:
+		update the $j^{th}$ column:\\
+	\If{ \textbf{A}(j,j) = 0 }{
+\[
+		\textbf{d}^{j}\leftarrow 0
+\]
+	}
+	\Else{
 \[
 		\textbf{u}^{j}\leftarrow \frac{1}{\textbf{A}(j,j)} (\textbf{b}^{j} -\dict\textbf{a}^{j}) + \textbf{d}^{j}
 \]
 \[
 		\textbf{d}^{j}\leftarrow \frac{1}{\max(||\textbf{u}^{j}||_2, 1)}\textbf{u}^{j}
 \]
+	}
 	}
 }
 
@@ -315,44 +322,6 @@ vision par ordinateur}.
 
 \end{thebibliography}
 
-\begin{comment}
-
-\begin{algorithm}[H]
-
-\SetLine
-\textbf{Input} : dictionary \dict = [\textbf{d}$^1$, ... , \textbf{d}$^\dsize$] $\in \mathbb{R}^{\psize \times \dsize}$, noisy patch \textbf{\noi}, regularization parameter $\lambda$\\
-\textbf{Output} : minimal argument $\code \in \RR^k$\\
-\textbf{Initialization} : $\mua \in \RR^k \leftarrow 0$, $\code \in \RR^k \leftarrow 0$\\
-	\For{ i = 1..\psize}{
-		---INITIALIZATION---\\
-		\If{ first iteration }{
-		\textit{Most correlated element}\\
-		$\clars \in \RR^{\dsize} \leftarrow \dict^T (\noi - \mua)$\\
-		\textit{Highest correlation}\\
-		$C \in \RR^+ \leftarrow \max_{j=1..\psize}(|\clars_j|)$ \\
-		\textit{Active index set}\\
-		$\A \leftarrow \{ j \text{ s.t. } |\clars_j| = C\}$\\
-	}
-		---VARIABLES UPDATES---\\
-		\textit{The inversion of $\da^T\da$ is done iteratively either with Cholesky decomposition or inversion lemma.}\\
-		$\da \in \RR^{\psize \times |\A|}\leftarrow \left( ... s_j\textbf{d}_j ...\right)$ where $s_j = \text{sgn}((\dict^T (\noi - \mua))_j)$\\
-		$\ua \in \RR^{|\A|} \leftarrow \Aa\da\left(\da^T\da\right)^{-1}\una$ where $\Aa = \frac{1}{\sqrt{\una^T \left(\da^T\da\right)^{-1}\una}}$ and $\una^T = (1,...,1) \in \RR^{|\A|}$\\
-		$a \in \RR^{\psize} \leftarrow \dict^T\ua$\\
-		---NEW ACTIVE INDEX---\\
-		\textit{$\min^+$ means that it only concerns positive values}\\
-		$\gamma \leftarrow \min^+_{j \in \A^C} \left[ \frac{C - c_j}{\Aa - a_j},  \frac{C + c_j}{\Aa + a_j} \right]$\\
-		$\mua \leftarrow \mua + \gamma \ua$ \\
-		\textit{New highest correlation}\\
-		$C \in \RR^+ \leftarrow C - \gamma \Aa$ \\
-		\textit{New active index set}\\
-		$\A \leftarrow \A \cup \{ j\text{ s.t. } \gamma_j = \gamma \}$\\
-	}
-	
-\caption{LARS algorithm}
-
-\end{algorithm}
-
-\end{comment}
 
 \end{document}
 %-------------------------------------------------------------------------------

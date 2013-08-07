@@ -85,6 +85,28 @@ void updateGram(
   const Matrix2 & i_Gs,
   const unsigned int p_iter);
 
+/**
+* @brief  Downdate the inverse of the Gram matrix
+*
+* @param io_invGs : Gs^{-1}. Will be downdated;
+* @param io_Gs : Gram matrix. Will be downdated;
+* @param io_Ga : pseudo-Gram matrix. Will be downdated;
+* @param io_activeIndexes : set of active indexes. Will be downdated;
+* @param io_alpha : output code of the lars. Will be downdated;;
+* @param p_iter : current index;
+* @param p_critIndex : critical index that shows where the downdate has to be done.
+*
+* @return none.
+**/
+void downdateGram(
+  Matrix2 &io_invGs,
+  Matrix2 &io_Gs,
+  Matrix2 &io_Ga,
+  vector<int> &io_activeIndexes,
+  vector<float> &io_alpha,
+  const unsigned int p_iter,
+  const unsigned int p_critIndex);
+
 
 /**
 * @brief Update the dictionary.

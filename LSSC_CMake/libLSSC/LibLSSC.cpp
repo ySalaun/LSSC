@@ -72,7 +72,11 @@ void trainL1(
       display("- LARS", params);
       vector<float> alpha;
       computeLars(io_dict, patch, params, alpha);
-
+      // TODO debug mode
+      for(int n = 0; n < k; n++){
+        cout << alpha[n] << " " ;
+      }
+      cout << endl;
       addXYt(A, alpha, alpha);
       addXYt(B, patch, alpha);
 
@@ -126,7 +130,7 @@ void computeLars(
     //! noisy picture norm
     float norm;
     dotProduct(p_patch, p_patch, norm);
-    
+
     //! if the norm is lower than the regularization parameter, stop the algorithm
     if (norm > reg) {
       return;
@@ -154,24 +158,30 @@ void computeLars(
     Matrix2 invGs(nb, nb);
     productAtB(p_dict, p_dict, G);
 
+    //! add EPSILON to diagonal elements in G
+    //! TODO: dunno why but inside Mairal's code
+    for(unsigned int k = 0; k < nb; k++){
+      G(k, k) += 1e-10;
+    }
+
     //! add the new most correlated element at each iteration
-    for (unsigned int i = 0; i < nb; i++) {
+    for (unsigned int iter = 0; iter < nb; iter++) {
 
       //! UPDATE
       if (newAtom) {
         display("-- update", p_params);
         activeIndexes.push_back(currentIndex);
-        Ga.copyRow(G , currentIndex, i);
-        Gs.copyCol(Ga, currentIndex, i);
-        Gs.symmetrizeUpperPart(i);
-        updateGram(invGs, Gs, i);
+        Ga.copyRow(G , currentIndex, iter);
+        Gs.copyCol(Ga, currentIndex, iter);
+        Gs.symmetrizeUpperPart(iter);
+        updateGram(invGs, Gs, iter);
       }
 
       //! VARIABLES UPDATE
       //! compute sign vector
       //! sgn = sgn(c)
-      vector<float> sgn(i + 1, 1.f);
-      for (unsigned int j = 0; j <= i; j++) {
+      vector<float> sgn(iter + 1, 1.f);
+      for (unsigned int j = 0; j <= iter; j++) {
         if (correlation[j] < 0) {
           sgn[j] = -1.f;
         }
@@ -180,7 +190,7 @@ void computeLars(
       //! compute direction vector
       //! Ua = invGs * sgn
       vector<float> Ua;
-      productAx(invGs, sgn, Ua, i + 1);
+      productAx(invGs, sgn, Ua, iter + 1);
 
       //! STEP
       display("-- compute step", p_params);
@@ -189,9 +199,9 @@ void computeLars(
       //! current maximum of correlation
       cMax = correlation[0];
       vector<float> tGaUa;
-      productAtx(Ga, Ua, tGaUa, i + 1);
+      productAtx(Ga, Ua, tGaUa, iter + 1);
 
-      for (unsigned int j = 0; j <= i; j++) {
+      for (unsigned int j = 0; j <= iter; j++) {
         tGaUa[activeIndexes[j]] = INFINITY;
       }
       for (unsigned int j = 0; j < nb; j++) {
@@ -223,8 +233,8 @@ void computeLars(
       //! Marc: WARNING : indexDowndate not used after that !!!
       //! Yohann:the function is not defined for now
       int indexDowndate;
-      for (unsigned int j = 0; j <= i; j++) {
-        const float ratio = -o_alpha[i] / Ua[i];
+      for (unsigned int j = 0; j <= iter; j++) {
+        const float ratio = -o_alpha[iter] / Ua[iter];
         if (ratio < stepDowndate && ratio >= 0) {
           stepDowndate = ratio;
           indexDowndate = j;
@@ -235,16 +245,17 @@ void computeLars(
       display("-- compute stopping step", p_params);
       float a, b, c;
       dotProduct(sgn, Ua, a);
-      dotProduct(correlation, Ua, b, i + 1);
+      dotProduct(correlation, Ua, b, iter + 1);
       c = norm - reg;
 
       const float delta = b * b - a * c;
       const float stepStop = min((delta > 0)? (b - sqrtf(delta)) / a : INFINITY, cMax);
 
       //! TAKE THE STEP
-      display("-- take the step", p_params);
+      display("-- take the step ", p_params, false);
       float finalStep = min(step, min(stepDowndate, stepStop));
-      for (unsigned int j = 0; j <= i; j++) {
+      cout << finalStep << endl;
+      for (unsigned int j = 0; j <= iter; j++) {
         o_alpha[activeIndexes[j]] += finalStep * Ua[j];
       }
       for (unsigned int j = 0; j < nb; j++) {
@@ -257,16 +268,14 @@ void computeLars(
         finalStep == stepStop		||
         norm < EPSILON				||
         norm - reg < EPSILON	){
-          //! Marc: pourquoi ce break est commenté ? à quoi sert ce test du coup ?
-          //! TODO: phase de test, les params sont pas très adaptés
-          //break;
+          break;
       }
 
       //! DOWNDATE
       if (false && finalStep == stepDowndate) {
         display("-- downdate", p_params);
-        // TODO downdate function of parameter indexDowndate
-        i -= 2;
+        downdateGram(invGs, Gs, Ga, activeIndexes, o_alpha, iter, indexDowndate);
+        iter -= 2;
         newAtom = false;
       }
       else {
@@ -286,7 +295,7 @@ void updateGram(
       // TODO fix the div by zero issue
       // should never happen, only in degenerated cases ==> but to check
       if(i_Gs(0, 0) == 0){
-        cerr << "the Gs matrix of size 1x1 is 0 and cannot be inverted" << endl;
+        cerr << "ERROR: the Gs matrix of size 1x1 is 0 and cannot be inverted ==> see updateGram function" << endl;
       }
       io_invGs(0, 0) = 1.f / i_Gs(0, 0);
     }
@@ -318,8 +327,51 @@ void updateGram(
     }
 }
 
+//! Downdate the inverse of the Gram matrix
+void downdateGram(
+  Matrix2 &io_invGs,
+  Matrix2 &io_Gs,
+  Matrix2 &io_Ga,
+  vector<int> &io_activeIndexes,
+  vector<float> &io_alpha,
+  const unsigned int p_iter,
+  const unsigned int p_critIndex){
+
+    const float sigma = 1.f / io_invGs(p_critIndex, p_critIndex);
+
+    //! u = Gs^-1[critInd-th row]\{Gs^-1_critInd,critInd}
+    vector<float> u(p_iter+1, 0.f);
+    io_invGs.getRow(u, p_critIndex);
+    u.erase(u.begin() + p_critIndex);
+
+    //! delete critInd-th row and critInd-th column (only for Gs and Gs^-1)
+    for(unsigned int i = p_critIndex; i < p_iter; i++){
+      for(unsigned int j = 0; j < p_critIndex; j++){
+        io_Ga(i,j) = io_Ga(i, j+1);
+        io_Gs(i,j) = io_Gs(i, j+1);
+        io_invGs(i,j) = io_invGs(i, j+1);
+      }
+      for(unsigned int j = p_critIndex; j < p_iter; j++){
+        io_Ga(i,j) = io_Ga(i, j+1);
+        io_Gs(i,j) = io_Gs(i+1, j+1);
+        io_invGs(i,j) = io_invGs(i+1, j+1);
+      }
+    }
+    io_Gs.symmetrizeUpperPart(p_iter-1);
+    io_invGs.symmetrizeUpperPart(p_iter-1);
+
+    //! delete the critical index coefficients from the output code
+    io_alpha[io_activeIndexes[p_critIndex]] = 0;
+
+    //! delete the critical index from the active indexes set
+    io_activeIndexes.erase(io_activeIndexes.begin() + p_critIndex);
+
+    //! Gs^-1 = Gs^-1 - sigma u u^t
+    addXYt(io_invGs, u, u, p_iter-1);
+}
+
 //! dictionary update algorithm
-// Marc : travailler sur u^t tout du long, afin d'optimiser les boucles !!
+// TODO Marc : travailler sur u^t tout du long, afin d'optimiser les boucles !!
 void updateDictionary(
   Matrix2 &io_D,
   const Matrix2 &i_A,
@@ -336,32 +388,36 @@ void updateDictionary(
       //! u = B - u
       add(i_B, u, u, true);
 
-      //! uj = uj/ajj for each column j of u
+      // loop on the column uj of u
       for (unsigned int j = 0; j < params.k; j++) {
-        // TODO Beware, this condition should really be there ?
-        if (i_A(j, j) != 0) {
+        //! if the A coefficient can be inverted, update the column
+        // TODO: in Mairal's code it is 1e-6 and the epsilon used for LARS is 1e-15.... 
+        if (i_A(j, j) > 1e-6) {
           const float ajjInv = 1.f / i_A(j ,j);
+          
+          //! uj = uj/ajj + Dj
           for (unsigned int i = 0; i < params.m; i++) {
-            u(i, j) *= ajjInv;
+            u(i, j) = ajjInv * u(i, j) + io_D(i, j);
+          }
+          
+          //! compute ||uj||
+          float norm2 = 0.f;
+          for (unsigned int i = 0; i < params.m; i++) {
+            norm2 += u(i, j) * u(i, j);
+          }
+
+          //! uj = uj / max(||uj||_2, 1) 
+          if (norm2 > 1.f) {
+            const float norm2Inv = 1.f / sqrtf(norm2);
+            for (unsigned int i = 0; i < params.m; i++) {
+              u(i, j) *= norm2Inv;
+            }
           }
         }
-      }
-
-      //! u = u + D
-      add(u, io_D, u);
-
-      //! uj = uj / max(||u||_2, 1) for each column j
-      for (unsigned int j = 0; j < params.k; j++) {
-        float norm2 = 0.f;
-
-        for (unsigned int i = 0; i < params.m; i++) {
-          norm2 += u(i, j) * u(i, j);
-        }
-
-        if (norm2 > 1.f) {
-          const float norm2Inv = 1.f / sqrtf(norm2);
+        //! else, fill it with 0
+        else{
           for (unsigned int i = 0; i < params.m; i++) {
-            u(i, j) *= norm2Inv;
+            u(i, j) = 0;
           }
         }
       }
