@@ -76,32 +76,18 @@ int main(
     //! read initial dictionary
     Matrix2 dict(params.m, params.k);
     ifstream txtDict(argv[9], ios::in);
-    /*char c = txtDict.get();
-    int index = 0;
-    string line;
-    /*while (getline(txtDict, line)) {
-      int i = index/params.k;
-      int j = index - i*params.k;
-      cout << i << "/" << j << endl;
-      cout << line << endl;
-      //dict(i, j);
-      index ++;
-    }*/
 
-    for(unsigned int j = 0; j < params.k; j++){
     for(unsigned int i = 0; i < params.m; i++){
-      
-       txtDict >> dict(i, j);
+      for(unsigned int j = 0; j < params.k; j++){
+        txtDict >> dict(i, j);
       }
     }
-
-    cout << dict(43, 259) << "/" <<dict(22, 285) << "/" << dict(67,133) << endl;
 
     //! LSSC
     display("----------------------------------------------", params);
     display("PART 1 - LEARNING PART WITH LARS", params);
     unsigned nRandomPatches = 50;//unsigned(floor(.2 * params.nPatch));
-    //trainL1(dict, imNoisy, nRandomPatches, params);
+    trainL1(dict, imNoisy, nRandomPatches, params);
 
     display("PART 2 - ORMP from KSVD", params);
     // TODO

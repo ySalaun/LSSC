@@ -166,7 +166,7 @@ void computeLars(
 
     //! add the new most correlated element at each iteration
     for (unsigned int iter = 0; iter < nb; iter++) {
-
+      cout << currentIndex << endl;
       //! UPDATE
       if (newAtom) {
         display("-- update", p_params);
