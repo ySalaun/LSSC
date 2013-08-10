@@ -18,7 +18,11 @@
 #include <time.h>
 
 #include "utilities.h"
+#ifdef __linux__
+#include "../libMatrix/LibMatrix.h"
+#else
 #include "libMatrix\LibMatrix.h"
+#endif
 
 /**
 * @brief Update the dictionnary with the l1 norm

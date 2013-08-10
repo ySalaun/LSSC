@@ -20,6 +20,7 @@
 				<Option object_output="obj/Release/" />
 				<Option type="1" />
 				<Option compiler="gcc" />
+				<Option parameters="/home/ibal/Images/input/NoiseFree/Traffic.png 20 /home/ibal/Images/output/LSSC/noisy.png /home/ibal/Images/output/LSSC/denoised.png /home/ibal/Images/output/LSSC/difference.png /home/ibal/Images/output/LSSC/bias.png /home/ibal/Images/output/LSSC/diff_bias.png 0 /home/ibal/Dropbox/Work/Programmes/Images/LSSC/LSSC/LSSC_Dictionaries/dict_n9.txt" />
 				<Compiler>
 					<Add option="-O2" />
 				</Compiler>
@@ -36,36 +37,28 @@
 			<Add option="-Wall" />
 			<Add option="-fexceptions" />
 		</Compiler>
+		<Unit filename="Main/main.cpp" />
 		<Unit filename="Main/params.h" />
-		<Unit filename="convert/convert.cpp" />
-		<Unit filename="libIO/draw.c">
-			<Option compilerVar="CC" />
-		</Unit>
-		<Unit filename="libIO/draw.h" />
 		<Unit filename="libIO/io_png.c">
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="libIO/io_png.h" />
-		<Unit filename="libIO/io_tiff.c">
-			<Option compilerVar="CC" />
-		</Unit>
-		<Unit filename="libIO/io_tiff.h" />
-		<Unit filename="libIO/nan.h" />
 		<Unit filename="libImages/LibImages.cpp" />
 		<Unit filename="libImages/LibImages.h" />
 		<Unit filename="libImages/mt19937ar.c">
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="libImages/mt19937ar.h" />
-		<Unit filename="libLSSC/ClassMatrix.cpp" />
-		<Unit filename="libLSSC/ClassMatrix.h" />
 		<Unit filename="libLSSC/LibLSSC.cpp" />
 		<Unit filename="libLSSC/LibLSSC.h" />
-		<Unit filename="libLSSC/LibMatrix.cpp" />
-		<Unit filename="libLSSC/LibMatrix.h" />
 		<Unit filename="libLSSC/utilities.cpp" />
 		<Unit filename="libLSSC/utilities.h" />
-		<Unit filename="main.cpp" />
+		<Unit filename="libMatrix/ClassMatrix.cpp" />
+		<Unit filename="libMatrix/ClassMatrix.h" />
+		<Unit filename="libMatrix/LibMatrix.cpp" />
+		<Unit filename="libMatrix/LibMatrix.h" />
+		<Unit filename="libORMP/LibOrmp.cpp" />
+		<Unit filename="libORMP/LibOrmp.h" />
 		<Extensions>
 			<code_completion />
 			<debugger />

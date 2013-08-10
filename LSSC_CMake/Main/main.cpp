@@ -23,133 +23,144 @@
 #include <math.h>
 #include <ctime>
 
+#ifdef __linux__
+#include "../libImages/LibImages.h"
+#include "../libLSSC/LibLSSC.h"
+#else
 #include "libImages/LibImages.h"
 #include "libLSSC/LibLSSC.h"
+#endif
+
 
 using namespace std;
 
 int main(
-  int argc
-  ,   char **argv
-  ){
-    //! Check if there is the right call for the algorithm
-    if (argc < 10) {
-      cout << "usage: LSSC image sigma noisy denoised difference \
-              bias diff_bias computeBias dict.txt" << endl;
-      return EXIT_FAILURE;
+int argc
+,   char **argv
+){
+  //! Check if there is the right call for the algorithm
+  if (argc < 10) {
+    cout << "usage: LSSC image sigma noisy denoised difference \
+            bias diff_bias computeBias dict.txt" << endl;
+    return EXIT_FAILURE;
+  }
+
+  // TODO Marc: cette ligne est à supprimer à la fin, mais j'en ai besoin pour lancer le code (ctrl+c, ctrl+v power !! ^^)
+  // /home/ibal/Images/input/NoiseFree/Traffic.png 20 /home/ibal/Images/output/LSSC/noisy.png /home/ibal/Images/output/LSSC/denoised.png /home/ibal/Images/output/LSSC/difference.png /home/ibal/Images/output/LSSC/bias.png /home/ibal/Images/output/LSSC/diff_bias.png 0 /home/ibal/Dropbox/Work/Programmes/Images/LSSC/LSSC/LSSC_Dictionaries/dict_n9.txt
+
+  //! Variables initialization
+  const float sigma = float(atof(argv[2]));
+  const bool doBias = bool(atof(argv[8]) != 0);
+
+  //! Declarations
+  vector<float> im, imNoisy, imFinal, imDiff;
+  vector<float> imBias, imDiffBias;
+  ImageSize imSize;
+  const bool verbose = true;
+
+  //! Read Image
+  if (loadImage(argv[1], im, imSize, verbose) != EXIT_SUCCESS) {
+    return EXIT_FAILURE;
+  }
+
+  //! Add noise
+  addNoise(im, imNoisy, sigma, verbose);
+
+  //! Parameters
+  // TODO remark, for now the pictures are considered to be B&W
+  // TODO the parameters have to be smarter
+  Parameters params;
+  params.h = imSize.height;
+  params.w = imSize.width;
+  params.sPatch = 9;
+  params.m = params.sPatch * params.sPatch;
+  params.k = 512;
+  params.nPatch = imSize.wh/params.m;
+  params.nRowPatches = params.w/params.sPatch;
+  params.nColPatches = params.h/params.sPatch;
+  params.reg = 1e7; // TODO: compute the real value
+  params.updateIteration = 1; // TODO Mairal used this parameter as default
+  params.verbose = true;
+
+  //! read initial dictionary
+  Matrix2 dict(params.m, params.k);
+  ifstream txtDict(argv[9], ios::in);
+
+  for(unsigned int i = 0; i < params.m; i++){
+    for(unsigned int j = 0; j < params.k; j++){
+      txtDict >> dict(i, j);
     }
+  }
 
-    //! Variables initialization
-    const float sigma = float(atof(argv[2]));
-    const bool doBias = bool(atof(argv[8]) != 0);
+  //! LSSC
+  display("----------------------------------------------", params);
+  display("PART 1 - LEARNING PART WITH LARS", params);
+  unsigned nRandomPatches = 50;//unsigned(floor(.2 * params.nPatch));
+  trainL1(dict, imNoisy, nRandomPatches, params);
 
-    //! Declarations
-    vector<float> im, imNoisy, imFinal, imDiff;
-    vector<float> imBias, imDiffBias;
-    ImageSize imSize;
-    const bool verbose = true;
+  display("PART 2 - ORMP from KSVD", params);
+  // TODO
 
-    //! Read Image
-    if (loadImage(argv[1], im, imSize, verbose) != EXIT_SUCCESS) {
-      return EXIT_FAILURE;
-    }
+  display("PART 3 - CLUSTERING", params);
+  // TODO
 
-    //! Add noise
-    addNoise(im, imNoisy, sigma, verbose);
+  display("PART 4 - LEARNING WITH SIMULTANEOUS LARS", params);
+  // TODO
 
-    //! Parameters
-    // TODO remark, for now the pictures are considered to be B&W
-    // TODO the parameters have to be smarter
-    Parameters params;
-    params.h = imSize.height;
-    params.w = imSize.width;
-    params.sPatch = 9;
-    params.m = params.sPatch * params.sPatch;
-    params.k = 512;
-    params.nPatch = imSize.wh/params.m;
-    params.nRowPatches = params.w/params.sPatch;
-    params.nColPatches = params.h/params.sPatch;
-    params.reg = 1e7; // TODO: compute the real value
-    params.updateIteration = 1; // TODO Mairal used this parameter as default
-    params.verbose = true;
+  display("PART 5 - SIMULTANEOUS ORMP", params);
+  // TODO
 
-    //! read initial dictionary
-    Matrix2 dict(params.m, params.k);
-    ifstream txtDict(argv[9], ios::in);
-
-    for(unsigned int i = 0; i < params.m; i++){
-      for(unsigned int j = 0; j < params.k; j++){
-        txtDict >> dict(i, j);
+  // TODO Marc: ne jamais faire de push_back lorsqu'on peut éviter, c'est ultra lent.
+  // TODO Marc: c'est normal de ne copier que le premier canal ?
+  for (unsigned c = 0; c < imSize.nChannels; c++) {
+    for (unsigned i = 0; i < imSize.height; i++) {
+      for (unsigned j = 0; j < imSize.width; j++) {
+        imFinal.push_back(imNoisy[0 * imSize.wh + i * imSize.width + j]);
+        imDiff.push_back(imNoisy[0 * imSize.wh + i * imSize.width + j]);
+        imBias.push_back(imNoisy[0 * imSize.wh + i * imSize.width + j]);
+        imDiffBias.push_back(imNoisy[0 * imSize.wh + i * imSize.width + j]);
       }
     }
+  }
 
-    //! LSSC
-    display("----------------------------------------------", params);
-    display("PART 1 - LEARNING PART WITH LARS", params);
-    unsigned nRandomPatches = 50;//unsigned(floor(.2 * params.nPatch));
-    trainL1(dict, imNoisy, nRandomPatches, params);
+  //! Compute PSNR and RMSE
+  float psnr, rmse;
+  computePsnr(im, imFinal, psnr, rmse, "imFinal", verbose);
 
-    display("PART 2 - ORMP from KSVD", params);
-    // TODO
+  float psnrBias, rmseBias;
+  if (doBias) {
+    computePsnr(im, imBias, psnrBias, rmseBias, "imBiasFinal", verbose);
+  }
 
-    display("PART 3 - CLUSTERING", params);
-    // TODO
+  //! save noisy, denoised and differences images
+  if (verbose) {
+    cout << "Save images...";
+  }
+  if (saveImage(argv[3], imNoisy, imSize, 0.f, 255.f) != EXIT_SUCCESS) {
+    return EXIT_FAILURE;
+  }
 
-    display("PART 4 - LEARNING WITH SIMULTANEOUS LARS", params);
-    // TODO
+  if (saveImage(argv[4], imFinal, imSize, 0.f, 255.f) != EXIT_SUCCESS) {
+    return EXIT_FAILURE;
+  }
 
-    display("PART 5 - SIMULTANEOUS ORMP", params);
-    // TODO
+  if (saveImage(argv[5], imDiff, imSize, 0.f, 255.f) != EXIT_SUCCESS) {
+    return EXIT_FAILURE;
+  }
 
-    for (unsigned c = 0; c < imSize.nChannels; c++) {
-      for (unsigned i = 0; i < imSize.height; i++) {
-        for (unsigned j = 0; j < imSize.width; j++) {
-          imFinal.push_back(imNoisy[0 * imSize.wh + i * imSize.width + j]);
-          imDiff.push_back(imNoisy[0 * imSize.wh + i * imSize.width + j]);
-          imBias.push_back(imNoisy[0 * imSize.wh + i * imSize.width + j]);
-          imDiffBias.push_back(imNoisy[0 * imSize.wh + i * imSize.width + j]);
-        }
-      }
-    }
-
-    //! Compute PSNR and RMSE
-    float psnr, rmse;
-    computePsnr(im, imFinal, psnr, rmse, "imFinal", verbose);
-
-    float psnrBias, rmseBias;
-    if (doBias) {
-      computePsnr(im, imBias, psnrBias, rmseBias, "imBiasFinal", verbose);
-    }
-
-    //! save noisy, denoised and differences images
-    if (verbose) {
-      cout << "Save images...";
-    }
-    if (saveImage(argv[3], imNoisy, imSize, 0.f, 255.f) != EXIT_SUCCESS) {
+  if (doBias) {
+    if (saveImage(argv[6], imBias, imSize, 0.f, 255.f) != EXIT_SUCCESS) {
       return EXIT_FAILURE;
     }
 
-    if (saveImage(argv[4], imFinal, imSize, 0.f, 255.f) != EXIT_SUCCESS) {
+    if (saveImage(argv[7], imDiffBias, imSize, 0.f, 255.f) != EXIT_SUCCESS) {
       return EXIT_FAILURE;
     }
+  }
+  if (verbose) {
+    cout << "done." << endl;
+  }
 
-    if (saveImage(argv[5], imDiff, imSize, 0.f, 255.f) != EXIT_SUCCESS) {
-      return EXIT_FAILURE;
-    }
-
-    if (doBias) {
-      if (saveImage(argv[6], imBias, imSize, 0.f, 255.f) != EXIT_SUCCESS) {
-        return EXIT_FAILURE;
-      }
-
-      if (saveImage(argv[7], imDiffBias, imSize, 0.f, 255.f) != EXIT_SUCCESS) {
-        return EXIT_FAILURE;
-      }
-    }
-    if (verbose) {
-      cout << "done." << endl;
-    }
-
-    //! Exit the Main Function
-    return EXIT_SUCCESS;
+  //! Exit the Main Function
+  return EXIT_SUCCESS;
 }

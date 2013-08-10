@@ -73,7 +73,7 @@ void trainL1(
       vector<float> alpha;
       computeLars(io_dict, patch, params, alpha);
       // TODO debug mode
-      for(int n = 0; n < k; n++){
+      for(unsigned int n = 0; n < k; n++){
         cout << alpha[n] << " " ;
       }
       cout << endl;
@@ -99,7 +99,7 @@ void getRandList(
     }
 
     //! seed the random function
-    srand(unsigned int(time(time_t(NULL))));
+    srand((unsigned int)(time(time_t(NULL))));
 
     //! find the p_nb random numbers
     for(unsigned int n = 0; n < p_nb; n++){
@@ -337,7 +337,8 @@ void downdateGram(
   const unsigned int p_iter,
   const unsigned int p_critIndex){
 
-    const float sigma = 1.f / io_invGs(p_critIndex, p_critIndex);
+    // TODO Marc: sigma n'est pas utilisé
+    //const float sigma = 1.f / io_invGs(p_critIndex, p_critIndex);
 
     //! u = Gs^-1[critInd-th row]\{Gs^-1_critInd,critInd}
     vector<float> u(p_iter+1, 0.f);
@@ -367,7 +368,7 @@ void downdateGram(
     io_activeIndexes.erase(io_activeIndexes.begin() + p_critIndex);
 
     //! Gs^-1 = Gs^-1 - sigma u u^t
-    addXYt(io_invGs, u, u, p_iter-1);
+    addXYt(io_invGs, u, u, p_iter-1); // TODO Marc : il manque sigma quelque part non ?
 }
 
 //! dictionary update algorithm
@@ -391,22 +392,22 @@ void updateDictionary(
       // loop on the column uj of u
       for (unsigned int j = 0; j < params.k; j++) {
         //! if the A coefficient can be inverted, update the column
-        // TODO: in Mairal's code it is 1e-6 and the epsilon used for LARS is 1e-15.... 
+        // TODO: in Mairal's code it is 1e-6 and the epsilon used for LARS is 1e-15....
         if (i_A(j, j) > 1e-6) {
           const float ajjInv = 1.f / i_A(j ,j);
-          
+
           //! uj = uj/ajj + Dj
           for (unsigned int i = 0; i < params.m; i++) {
             u(i, j) = ajjInv * u(i, j) + io_D(i, j);
           }
-          
+
           //! compute ||uj||
           float norm2 = 0.f;
           for (unsigned int i = 0; i < params.m; i++) {
             norm2 += u(i, j) * u(i, j);
           }
 
-          //! uj = uj / max(||uj||_2, 1) 
+          //! uj = uj / max(||uj||_2, 1)
           if (norm2 > 1.f) {
             const float norm2Inv = 1.f / sqrtf(norm2);
             for (unsigned int i = 0; i < params.m; i++) {
