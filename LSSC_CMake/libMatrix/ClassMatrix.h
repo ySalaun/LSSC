@@ -15,23 +15,21 @@
 
 #include <vector>
 
-using namespace std;
-
-class Matrix2
+class Matrix
 {
 public :
   //! Constructor
-  Matrix2();
-  Matrix2(
+  Matrix();
+  Matrix(
     const unsigned int i_row,
     const unsigned int i_col);
-  Matrix2(
+  Matrix(
     const unsigned int i_row,
     const unsigned int i_col,
     const float i_value);
 
   //! Destructor
-  ~Matrix2();
+  ~Matrix();
 
   //! Get the size of a matrix
   void getSize(
@@ -47,8 +45,8 @@ public :
   void print() const;
 
   //! Operator overloading
-  Matrix2& operator=(
-    Matrix2 const& i_mat);
+  Matrix& operator=(
+    Matrix const& i_mat);
 
   float& operator()(
     const unsigned int p_i,
@@ -56,32 +54,45 @@ public :
 
   float operator() (
     const unsigned int p_i,
-    const unsigned int p_j)
-    const;
-
-  //! Set the Gram matrix of the input one.
-  void setGramMatrix(
-    Matrix2 const& i_mat);
+    const unsigned int p_j) const;
 
   //! Set the transpose of a matrix.
   void setTranspose(
-    Matrix2 const& i_mat);
+    Matrix const& i_mat);
 
   //! Copy a row of another matrix into this one
   void copyRow(
-    Matrix2 const& i_mat,
+    Matrix const& i_mat,
     const unsigned int p_rowFrom,
     const unsigned int p_rowTo);
 
-  //! Fill a vector with the first elements of the row of a matrix
+  //! Fill a vector with the p_iMax first elements of the p_row-th row of the current matrix
   void getRow(
-    vector<float> &o_row,
-    const unsigned int p_row)
-    const;
+    std::vector<float> &o_row,
+    const unsigned int p_row,
+    const int p_iMax = -1) const;
+
+  //! Fill the i-th row of the current matrix by a vector
+  void setRow(
+    std::vector<float> const& i_row,
+    const unsigned int p_row,
+    const bool p_minus = false,
+    const int p_iMax = -1);
+
+  //! Fill a vector with the p_iMax first elements of the j-th column of the current matrix
+  void getCol(
+    std::vector<float> &o_col,
+    const unsigned int p_col,
+    const int p_iMax = -1) const;
+
+  //! Fill the j-th column of the current matrix by a vector
+  void setCol(
+    std::vector<float> const& i_col,
+    const unsigned int p_col);
 
   //! Copy a column of another matrix into this one
   void copyCol(
-    Matrix2 const& i_mat,
+    Matrix const& i_mat,
     const unsigned int p_colFrom,
     const unsigned int p_colTo);
 
@@ -89,10 +100,63 @@ public :
   void symmetrizeUpperPart(
     const unsigned int p_rowMax);
 
+  //! Add A and B in the current matrix (sizes must be equals)
+  void add(
+    Matrix const& i_A,
+    Matrix const& i_B,
+    const bool p_minus = false);
+
+  //! Get the product A * B into the current matrix
+  void productAB(
+    Matrix const& i_A,
+    Matrix const& i_B,
+    const int p_iMax = -1);
+
+  //! Get the product At * B into the current matrix
+  void productAtB(
+    Matrix const& i_A,
+    Matrix const& i_B);
+
+  //! Get the dot product A .* B into the current matrix
+  void dotProduct(
+    Matrix const& i_A,
+    Matrix const& i_B);
+
+  //! Apply the product y = M * x, where M is the current matrix
+  //! if p_max > -1, the product will be done only for the p_iMax x p_iMax submatrice
+  //! and the p_iMax subvector.
+  void productAx(
+    std::vector<float> const& i_x,
+    std::vector<float> &o_y,
+    const int p_iMax = -1) const;
+
+  //! Apply the product y = Mt * x, where M is the current matrix
+  //! if p_max > -1, the product will be done only for the p_iMax x p_iMax submatrice
+  //! and the p_iMax subvector.
+  void productAtx(
+    std::vector<float> const& i_x,
+    std::vector<float> &o_y,
+    const int p_iMax = -1) const;
+
+  //! Compute A = A + xy' where y' is the transpose of the vector y.
+  //! if p_iMax > -1, then the addition will be only done for (i,j) < (p_iMax, p_iMax).
+  void addXYt(
+    std::vector<float> const& i_x,
+    std::vector<float> const& i_y,
+    const int p_iMax = -1);
+
+  //! Remove the iMax first elements of the i-th row and the jMax first elements
+  //! of the j-th column
+  void removeRowCol(
+    const unsigned int p_row,
+    const unsigned int p_col,
+    const int p_iMax = -1,
+    const int p_jMax = -1);
+
 private :
   unsigned int m_row;
   unsigned int m_col;
-  vector<float> m_mat;
+  std::vector<float> m_mat;
 };
 
 

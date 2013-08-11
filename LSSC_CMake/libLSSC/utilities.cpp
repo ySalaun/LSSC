@@ -37,7 +37,7 @@ void display(const vector<float>& vec){
   cout << endl;
 }
 
-void display(const Matrix2 & mat, const int iMax){
+void display(const Matrix & mat, const int iMax){
   unsigned int m, n;
   mat.getSize(m, n);
 

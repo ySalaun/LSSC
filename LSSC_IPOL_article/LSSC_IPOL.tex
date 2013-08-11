@@ -6,7 +6,6 @@
 \documentclass{ipol}
 \usepackage{amssymb}
 \usepackage{amsmath}
-\usepackage{dsfont}
 \usepackage{algorithm2e}
 \usepackage{bm}
 \usepackage{verbatim}
@@ -99,13 +98,13 @@ The algorithm corresponds then to the minimization of eq.\ref{sparseDict} on the
 		\textbf{\noi}$_t$ = \textbf{\Noi}$_T$[t]\\
 		Sparse coding: compute with LARS algorithm:
 \[
-		\textbf{$\code$}^t = \argmin_{\code \in \RR^\dsize} ||\code||_1 \text{ s.t. } ||\noi - \dict^{t-1} \code||_2^2 \leq \lambda
+		\textbf{$\code$}^t = \argmin_{\code \in \RR^\dsize} ||\code||_1 \text{ s.t. } ||\noi_t - \dict^{t-1} \code||_2^2 \leq \lambda
 \]
 		\textbf{A}$^t \leftarrow \textbf{A}^{t-1} + \code^t \code^{t T}$\\
-		\textbf{B}$^t \leftarrow \textbf{B}^{t-1} + \textbf{\noi}^t \code^{t T}$\\
+		\textbf{B}$^t \leftarrow \textbf{B}^{t-1} + \textbf{\noi}_t^t \code^{t T}$\\
 		Update dictionary from \dict$^{t-1}$ to \dict$^{t}$ so that:
 \[
-		\dict^{t}= \argmin_{\dict \in\RR^{\psize \times \dsize}} \frac{1}{t} \sum_{i=1}^t (\frac{1}{2}|\textbf{\noi}^i - \dict \code^i||^2_2 + \lambda ||\code^i||_1)
+		\dict^{t}= \argmin_{\dict \in\RR^{\psize \times \dsize}} \frac{1}{t} \sum_{i=1}^t (\frac{1}{2}|\textbf{\noi}_t^i - \dict \code^i||^2_2 + \lambda ||\code^i||_1)
 \]
 }
 \Return \dict$^{T}$
@@ -119,7 +118,7 @@ The algorithm corresponds then to the minimization of eq.\ref{sparseDict} on the
 \SetLine
 \textbf{Input} :input dictionary \dict = [\textbf{d}$^1$, ... , \textbf{d}$^\dsize$] $\in \mathbb{R}^{\psize \times \dsize}$, \\ \textbf{A} = [\textbf{a}$^1$, ... , \textbf{a}$^\dsize$] $ \in \mathbb{R}^{\dsize \times \dsize}$,  \textbf{B} = [\textbf{b}$^1$, ... , \textbf{b}$^\dsize$]$ \in \mathbb{R}^{\psize \times \dsize}$\\
 \textbf{Output} : updated dictionary \textbf{\dict} \\
-\Repeat{convergence}{
+\Repeat{convergence {\color{red} Marc: apparemment, dans le code on a une boucle sur params.updateIteration = 1. Est-ce qu'il ne vaudrait mieux pas calculer l'argmin \`a chaque boucle et s'arr\^eter lorsque c'est plus petit qu'une certaine valeur ?}}{
 	\For{ j = 1..\dsize}{
 		update the $j^{th}$ column:\\
 	\If{ \textbf{A}(j,j) = 0 }{
@@ -140,7 +139,7 @@ The algorithm corresponds then to the minimization of eq.\ref{sparseDict} on the
 
 \Return \dict
 
-\caption{Dictionary Update}
+\caption{Dictionary Update {\color{red} updateDictionary} {\color{blue} Marc: Algo valid\'e}}
 
 \end{algorithm}
 
@@ -154,13 +153,14 @@ noisy patch \textbf{\noi},
 constraint $\lambda$\\
 \textbf{Output} : sparse vector $\code \in \mathbb{R}^{\dsize}$\\
 ---INITIALIZATION---\\
+{\color{blue} Marc : $\A$ n'est pas d\'efinie, et $\da$ non plus.\\}
 normX $\in \mathbb{R} \leftarrow$ $||\noi||^2_2$\\
 coeffs $\in \mathbb{R}^{\dsize} \leftarrow$ \textbf{0}\\
 \textit{Most correlated element}\\
 $\clars \in \RR^{\dsize} \leftarrow \dict^T \noi$\\
 $C \in \RR^+ \leftarrow \max_{j=1..\psize}(|\clars_j|)$ \\
 currentInd $\leftarrow j \text{ s.t. } \clars_j = C$\\
-\If{ normX $> \lambda$}{
+\If{ normX $> \lambda$ {\color{blue} Marc : pourquoi $>$ et pas $<$ ?}}{
 	\textbf{return 0}
 }
 newAtom $\leftarrow$ \textbf{True}\\
@@ -173,12 +173,12 @@ newAtom $\leftarrow$ \textbf{True}\\
 		UPDATE $G_S^{-1}$
 	}
 	---VARIABLES UPDATES---\\
-	u $\leftarrow$ $G_S^{-1} (\text{sgn}(\clars_j))_{j\in \A}$\\
+	u $\leftarrow$ $G_S^{-1} (\text{sgn}(\clars_j))_{j\in \A}$ {\color{blue} Marc : qu'est-ce que \c ca veut dire ? de quelle taille est u ?}\\
 	ratio $\leftarrow$ $\left(-\frac{\text{coeffs}[j]}{u_j}\right)_{j\in[1;i]}$\\
 	stepMAX $\leftarrow$ $\min^+(\text{ratio})$ ($\min^+$ means its the minimum between positive values)\\
-	criticalInd $\leftarrow$ j s.t. ratio[j] =	stepMAX\\
-	C $\leftarrow$ $\clars[0]$\\
-	$\gamma$ $\leftarrow$ $\min^+\left(\frac{C \pm \clars_j}{1 \pm (G_Au)[j]}\right)_{j \notin \A}$\\
+	criticalInd $\leftarrow$ j s.t. ratio[j] =	stepMAX {\color{blue} Marc : criticalInd n'est jamais plus utilis\'e par la suite ??!!}\\
+	C $\leftarrow$ $\clars[0]$ {\color{blue} Marc : \c ca ne devrait pas \^etre C = max $\clars[j]$ ?} \\
+	$\gamma$ $\leftarrow$ $\min^+\left(\frac{C \pm \clars_j}{1 \pm (G_Au)[j]}\right)_{j \notin \A}$ {\color{blue} Marc : \c ca fait 2 possibilit\'es ou bien 4 avec les $\pm$ ?}\\
 	---POLYNOMIAL RESOLUTION---\\
 	$a$ $\leftarrow$ $\sum_{j \in \A} \text{sgn}(\clars[\A[j]])u[j]$\\
 	$b$ $\leftarrow$ $\sum_{j \in \A} \clars[\A[j]] u[j]$\\
@@ -187,24 +187,24 @@ newAtom $\leftarrow$ \textbf{True}\\
 	stepMAX2 $\leftarrow$ $\min(\frac{b - \sqrt{\Delta}}{a}, C)$ \\
 	---FINAL STEP $\&$ BREAK---\\
 	$\gamma$ $\leftarrow$ min($\gamma$, stepMAX, stepMAX2)\\
-	coeffs $\leftarrow$ coeffs + $\gamma$u \\
+	coeffs $\leftarrow$ coeffs + $\gamma$u {\color{blue} Marc : a priori coeffs et u ne sont pas de la m\^eme taille}\\
 	$\clars$ $\leftarrow$ $\clars - \gamma G_Au$ \\
 	normX $\leftarrow$ normX + $a\gamma^2 - 2b\gamma$ \\
 	\If{ $|\gamma| < 1e^{-15} \ ||\ \gamma = stepMAX2 \ ||\ normX < 1e^{-15} \ ||\ normX - \lambda < 1e^{-15}$}{
-		\textbf{break}
+		\textbf{break} {\color{blue} Marc : ici on travaille en float, donc je pense qu'on peut mettre $1e^{-6}$}
 	}
 	\If{ $\gamma = stepMAX$ }{
 		DOWNDATE $G_S^{-1}$ \\
 		newAtom $\leftarrow$ \textbf{False} \\
-		i $\leftarrow$ i-2
+		i $\leftarrow$ i-2 {\color{blue} Marc c'est possible que i devienne n\'egatif ? \c Ca risque de poser probl\`eme non ?}
 	}
 	\Else{
 		newAtom $\leftarrow$ \textbf{True}
 	}
 }
-\Return $\code = sort($coeffs$, \A)$ (sorted coefficient with respect to the increasing order of $\A$ indexes and filled with 0 if necessary)
+\Return $\code = sort($coeffs$, \A)$ (sorted coefficient with respect to the increasing order of $\A$ indexes and filled with 0 if necessary) {\color{blue} Marc : je ne comprends pas ce que \c ca veut dire. Qu'est-ce qu'on trie ? Est-ce qu'il ne faut pas faire : $\code(j)=$coeffs$(j)$ si $j\in\A$ et $0$ sinon ?}
 	
-\caption{LARS algorithm - Mairal Version}
+\caption{LARS algorithm - Mairal Version {\color{red} computeLars} {\color{blue} Marc : Gram Matrix G is not an input of this function !}}
 
 \end{algorithm}
 
@@ -223,7 +223,7 @@ $\sigma$ $\leftarrow \ \frac{1}{G_s(i,i) - u.G_S[i^{th} \text{ line}]}$\\
 $G_s^{-1}(i,i)\ \leftarrow$ $\sigma$\\
 $G_s^{-1}[i^{th}$ line] $\leftarrow$ -$\sigma u$\\
 \Return $G_s^{-1} \ \leftarrow \ G_s^{-1}+\sigma u u^T$\\
-\caption{Update invert algorithm}
+\caption{Update invert algorithm {\color{red} updateGram} {\color{blue} Marc: Algo correspondant, mais \`a valider.}}
 
 \end{algorithm}
 
@@ -253,7 +253,7 @@ $u \ \leftarrow \ G_S^{-1} [$criticalInd$^{th}$ line] without its criticalInd$^{
 coeffs[i] $\leftarrow$ 0\\
 $G_s^{-1} \ \leftarrow \ G_s^{-1}-\sigma u u^T$\\
 
-\caption{Downdate invert algorithm}
+\caption{Downdate invert algorithm {\color{red} downdateGram} {\color{blue} Marc: Algo ne correspondant pas, j'ai cr\'e\'e une nouvelle fonction downdateGramBis dont je pense est une meilleure version. Il faudra la tester et la valider.}}
 
 \end{algorithm}
 

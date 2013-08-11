@@ -35,7 +35,7 @@
 * @return none.
 **/
 void trainL1(
-  Matrix2 &io_dict,
+  Matrix &io_dict,
   const vector<float> &i_noisy,
   const unsigned int p_nPatch,
   const Parameters &params);
@@ -69,7 +69,7 @@ void getRandList(
 * @return none.
 **/
 void computeLars(
-  const Matrix2 &p_dict,
+  const Matrix &p_dict,
   const vector<float> &p_patch,
   const Parameters &p_params,
   vector<float> &o_alpha);
@@ -85,8 +85,8 @@ void computeLars(
 * @return none.
 **/
 void updateGram(
-  Matrix2 &io_invGs,
-  const Matrix2 & i_Gs,
+  Matrix &io_invGs,
+  const Matrix & i_Gs,
   const unsigned int p_iter);
 
 /**
@@ -103,9 +103,9 @@ void updateGram(
 * @return none.
 **/
 void downdateGram(
-  Matrix2 &io_invGs,
-  Matrix2 &io_Gs,
-  Matrix2 &io_Ga,
+  Matrix &io_invGs,
+  Matrix &io_Gs,
+  Matrix &io_Ga,
   vector<int> &io_activeIndexes,
   vector<float> &io_alpha,
   const unsigned int p_iter,
@@ -123,9 +123,9 @@ void downdateGram(
 * @return none.
 **/
 void updateDictionary(
-  Matrix2 &io_D,
-  const Matrix2 &i_A,
-  const Matrix2 &i_B,
+  Matrix &io_D,
+  const Matrix &i_A,
+  const Matrix &i_B,
   const Parameters &params);
 
 

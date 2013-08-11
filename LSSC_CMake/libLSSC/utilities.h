@@ -29,6 +29,6 @@ using namespace std;
 
 void display(const char* msg, const Parameters &params, bool endline = true);
 void display(const vector<float>& vec);
-void display(const Matrix2 & mat, const int iMax = -1);
+void display(const Matrix & mat, const int iMax = -1);
 
 #endif // UTILITIES_H_INCLUDED
