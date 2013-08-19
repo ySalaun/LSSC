@@ -118,7 +118,7 @@ The algorithm corresponds then to the minimization of eq.\ref{sparseDict} on the
 \SetLine
 \textbf{Input} :input dictionary \dict = [\textbf{d}$^1$, ... , \textbf{d}$^\dsize$] $\in \mathbb{R}^{\psize \times \dsize}$, \\ \textbf{A} = [\textbf{a}$^1$, ... , \textbf{a}$^\dsize$] $ \in \mathbb{R}^{\dsize \times \dsize}$,  \textbf{B} = [\textbf{b}$^1$, ... , \textbf{b}$^\dsize$]$ \in \mathbb{R}^{\psize \times \dsize}$\\
 \textbf{Output} : updated dictionary \textbf{\dict} \\
-\Repeat{convergence {\color{red} Marc: apparemment, dans le code on a une boucle sur params.updateIteration = 1. Est-ce qu'il ne vaudrait mieux pas calculer l'argmin \`a chaque boucle et s'arr\^eter lorsque c'est plus petit qu'une certaine valeur ?}}{
+\Repeat{convergence {\color{red} Marc: apparemment, dans le code on a une boucle sur params.updateIteration = 1. Est-ce qu'il ne vaudrait mieux pas calculer l'argmin \`a chaque boucle et s'arr\^eter lorsque c'est plus petit qu'une certaine valeur ?}{\color{green} Yohann: je n'ai pas trop compris ce que tu voulais faire. Ca c'est le pseudo code présenté par Mairal, qui est donc une sorte de descente de gradient. Ce genre d'algo converge en théorie à l'infini, en pratique on prend un grand nombre d'itération. Cependant, dans ce cas on fait une minimisation alternée d'un problème plus global (selon D puis selon alpha et on itère). Du coup, et surement à cause de contraintes de temps, Mairal a fixé le nombre d'itération à 1 mais permet de le changer en paramètre dans son algo. Du coup j'ai voulu faire pareil que Mairal. }}{
 	\For{ j = 1..\dsize}{
 		update the $j^{th}$ column:\\
 	\If{ \textbf{A}(j,j) = 0 }{
@@ -148,28 +148,47 @@ The algorithm corresponds then to the minimization of eq.\ref{sparseDict} on the
 \begin{algorithm}[H]
 
 \SetLine
-\textbf{Input} : Gram matrix of the dictionary G = $\dict^T\dict \in \mathbb{R}^{\dsize \times \dsize}$ where $\dict$ = [\textbf{d}$^1$, ... , \textbf{d}$^\dsize$] $\in \mathbb{R}^{\psize \times \dsize}$,\\
+\textbf{Input} : Input dictionary $\dict \in \mathbb{R}^{\psize \times \dsize}$,\\
 noisy patch \textbf{\noi}, 
 constraint $\lambda$\\
 \textbf{Output} : sparse vector $\code \in \mathbb{R}^{\dsize}$\\
 ---INITIALIZATION---\\
-{\color{blue} Marc : $\A$ n'est pas d\'efinie, et $\da$ non plus.\\}
-normX $\in \mathbb{R} \leftarrow$ $||\noi||^2_2$\\
+{\color{blue} TODO: use better notations $\A$ coeffs and $\da$ + explain the output + better layout}\\
+G = $\in \mathbb{R}^{\dsize \times \dsize} \leftarrow \dict^T\dict$\\
+normPatch $\in \mathbb{R} \leftarrow$ $||\noi||^2_2$\\
 coeffs $\in \mathbb{R}^{\dsize} \leftarrow$ \textbf{0}\\
 \textit{Most correlated element}\\
 $\clars \in \RR^{\dsize} \leftarrow \dict^T \noi$\\
 $C \in \RR^+ \leftarrow \max_{j=1..\psize}(|\clars_j|)$ \\
 currentInd $\leftarrow j \text{ s.t. } \clars_j = C$\\
-\If{ normX $> \lambda$ {\color{blue} Marc : pourquoi $>$ et pas $<$ ?}}{
+$\A \leftarrow \emptyset $\\
+newAtom $\leftarrow$ \textbf{True}\\
+{\color{blue} TODO: explain the condition}\\
+\If{ normPatch $> \lambda$ }{
 	\textbf{return 0}
 }
-newAtom $\leftarrow$ \textbf{True}\\
 \For{ i = 1..$\dsize$}{
+LOOP !!!
+}
+\Return $\code = sort($coeffs$, \A)$ (sorted coefficient with respect to the increasing order of $\A$ indexes and filled with 0 if necessary)
+	
+\caption{LARS algorithm - Mairal Version {\color{red} computeLars}}
+
+\end{algorithm}
+
+\newpage
+
+\begin{algorithm}[H]
+
+\SetLine
+\textbf{Input} : \\
+\textbf{Output} :\\
 	---NEW ATOM---\\
 	\If{ newAtom }{
-		$\A$[i] $\leftarrow$ currentInd\\
+		$\A \leftarrow \A \cup \{currentInd \}$\\
 		$G_A$[$i^{th}$ line] $\leftarrow$ $G$[$\A$[i]$^{th}$ line]\\
-		$G_S$ $\leftarrow$ $\da^T\da$\\
+		$G_S$[$i^{th}$ line] $\leftarrow$ $G_A$[$\A$[i]$^{th}$ line]\\
+		symmetrize $G_S$\\
 		UPDATE $G_S^{-1}$
 	}
 	---VARIABLES UPDATES---\\
@@ -201,13 +220,10 @@ newAtom $\leftarrow$ \textbf{True}\\
 	\Else{
 		newAtom $\leftarrow$ \textbf{True}
 	}
-}
-\Return $\code = sort($coeffs$, \A)$ (sorted coefficient with respect to the increasing order of $\A$ indexes and filled with 0 if necessary) {\color{blue} Marc : je ne comprends pas ce que \c ca veut dire. Qu'est-ce qu'on trie ? Est-ce qu'il ne faut pas faire : $\code(j)=$coeffs$(j)$ si $j\in\A$ et $0$ sinon ?}
 	
-\caption{LARS algorithm - Mairal Version {\color{red} computeLars} {\color{blue} Marc : Gram Matrix G is not an input of this function !}}
+\caption{LARS algorithm - Mairal Version {\color{red} computeLars} - LOOP }
 
 \end{algorithm}
-
 \newpage
 
 \begin{algorithm}[H]

@@ -1,16 +1,21 @@
 \relax 
-\ifx\hyper@anchor\@undefined
-\global \let \oldcontentsline\contentsline
-\gdef \contentsline#1#2#3#4{\oldcontentsline{#1}{#2}{#3}}
-\global \let \oldnewlabel\newlabel
-\gdef \newlabel#1#2{\newlabelxx{#1}#2}
-\gdef \newlabelxx#1#2#3#4#5#6{\oldnewlabel{#1}{{#2}{#3}}}
-\AtEndDocument{\let \contentsline\oldcontentsline
-\let \newlabel\oldnewlabel}
-\else
-\global \let \hyper@last\relax 
-\fi
-
+\providecommand\hyper@newdestlabel[2]{}
+\providecommand\HyperFirstAtBeginDocument{\AtBeginDocument}
+\HyperFirstAtBeginDocument{\ifx\hyper@anchor\@undefined
+\global\let\oldcontentsline\contentsline
+\gdef\contentsline#1#2#3#4{\oldcontentsline{#1}{#2}{#3}}
+\global\let\oldnewlabel\newlabel
+\gdef\newlabel#1#2{\newlabelxx{#1}#2}
+\gdef\newlabelxx#1#2#3#4#5#6{\oldnewlabel{#1}{{#2}{#3}}}
+\AtEndDocument{\ifx\hyper@anchor\@undefined
+\let\contentsline\oldcontentsline
+\let\newlabel\oldnewlabel
+\fi}
+\fi}
+\global\let\hyper@last\relax 
+\gdef\HyperFirstAtBeginDocument#1{#1}
+\providecommand\HyField@AuxAddToFields[1]{}
+\providecommand\HyField@AuxAddToCoFields[2]{}
 \citation{LSSC}
 \citation{OMP}
 \citation{LARS}
@@ -19,7 +24,7 @@
 \@writefile{toc}{\contentsline {section}{\numberline {2}Theoritical Description}{1}{section.2}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {2.1} Notations}{1}{subsection.2.1}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {2.2} Learned Sparse Coding}{1}{subsection.2.2}}
-\newlabel{sparseDict}{{1}{1}{ Learned Sparse Coding\relax }{equation.2.1}{}}
+\newlabel{sparseDict}{{1}{1}{Learned Sparse Coding}{equation.2.1}{}}
 \citation{onlineLearning}
 \citation{LARS}
 \@writefile{toc}{\contentsline {subsection}{\numberline {2.3}Simultaneous Sparse Coding}{2}{subsection.2.3}}
@@ -28,10 +33,11 @@
 \@writefile{toc}{\contentsline {subsection}{\numberline {3.2}Dictionnary Initialization}{2}{subsection.3.2}}
 \@writefile{loa}{\contentsline {algocf}{\numberline {1}{\ignorespaces Online Dictionary Learning}}{3}{algocfline.1}}
 \@writefile{loa}{\contentsline {algocf}{\numberline {2}{\ignorespaces Dictionary Update {\color  {red} updateDictionary} {\color  {blue} Marc: Algo valid\'e}}}{3}{algocfline.2}}
-\@writefile{loa}{\contentsline {algocf}{\numberline {3}{\ignorespaces LARS algorithm - Mairal Version {\color  {red} computeLars} {\color  {blue} Marc : Gram Matrix G is not an input of this function !}}}{5}{algocfline.3}}
+\@writefile{loa}{\contentsline {algocf}{\numberline {3}{\ignorespaces LARS algorithm - Mairal Version {\color  {red} computeLars}}}{4}{algocfline.3}}
+\@writefile{loa}{\contentsline {algocf}{\numberline {4}{\ignorespaces LARS algorithm - Mairal Version {\color  {red} computeLars} - LOOP }}{5}{algocfline.4}}
 \bibcite{LARS}{1}
-\@writefile{loa}{\contentsline {algocf}{\numberline {4}{\ignorespaces Update invert algorithm {\color  {red} updateGram} {\color  {blue} Marc: Algo correspondant, mais \`a valider.}}}{6}{algocfline.4}}
-\@writefile{loa}{\contentsline {algocf}{\numberline {5}{\ignorespaces Downdate invert algorithm {\color  {red} downdateGram} {\color  {blue} Marc: Algo ne correspondant pas, j'ai cr\'e\'e une nouvelle fonction downdateGramBis dont je pense est une meilleure version. Il faudra la tester et la valider.}}}{6}{algocfline.5}}
+\@writefile{loa}{\contentsline {algocf}{\numberline {5}{\ignorespaces Update invert algorithm {\color  {red} updateGram} {\color  {blue} Marc: Algo correspondant, mais \`a valider.}}}{6}{algocfline.5}}
+\@writefile{loa}{\contentsline {algocf}{\numberline {6}{\ignorespaces Downdate invert algorithm {\color  {red} downdateGram} {\color  {blue} Marc: Algo ne correspondant pas, j'ai cr\'e\'e une nouvelle fonction downdateGramBis dont je pense est une meilleure version. Il faudra la tester et la valider.}}}{6}{algocfline.6}}
 \bibcite{onlineLearning}{2}
 \bibcite{LSSC}{3}
 \bibcite{thesis}{4}

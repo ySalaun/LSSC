@@ -26,11 +26,8 @@
 #include <omp.h>
 #endif
 
-#ifdef __linux__
 #include "LibOrmp.h"
-#else
-#include "libORMP/LibOrmp.h"
-#endif
+
 
 
 using namespace std;

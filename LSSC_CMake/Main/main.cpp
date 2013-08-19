@@ -26,9 +26,11 @@
 #ifdef __linux__
 #include "../libImages/LibImages.h"
 #include "../libLSSC/LibLSSC.h"
+#include "../libORMP/LibORMP.h"
 #else
 #include "libImages/LibImages.h"
 #include "libLSSC/LibLSSC.h"
+#include "libORMP/LibORMP.h"
 #endif
 
 
@@ -44,9 +46,6 @@ int argc
             bias diff_bias computeBias dict.txt" << endl;
     return EXIT_FAILURE;
   }
-
-  // TODO Marc: cette ligne est à supprimer à la fin, mais j'en ai besoin pour lancer le code (ctrl+c, ctrl+v power !! ^^)
-  // /home/ibal/Images/input/NoiseFree/Traffic.png 20 /home/ibal/Images/output/LSSC/noisy.png /home/ibal/Images/output/LSSC/denoised.png /home/ibal/Images/output/LSSC/difference.png /home/ibal/Images/output/LSSC/bias.png /home/ibal/Images/output/LSSC/diff_bias.png 0 /home/ibal/Dropbox/Work/Programmes/Images/LSSC/LSSC/LSSC_Dictionaries/dict_n9.txt
 
   //! Variables initialization
   const float sigma = float(atof(argv[2]));
@@ -140,6 +139,7 @@ int argc
 
   // TODO Marc: ne jamais faire de push_back lorsqu'on peut éviter, c'est ultra lent.
   // TODO Marc: c'est normal de ne copier que le premier canal ?
+  // TODO Yohann: concrètement ça sert à rien ces lignes et faudra les changer pour en faire ce qui nous intéresse ;)
   for (unsigned c = 0; c < imSize.nChannels; c++) {
     for (unsigned i = 0; i < imSize.height; i++) {
       for (unsigned j = 0; j < imSize.width; j++) {
