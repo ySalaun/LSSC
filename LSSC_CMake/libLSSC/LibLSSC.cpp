@@ -128,7 +128,7 @@ void computeLars(
 
   //! For convenience
   const unsigned int nb = p_params.k;
-  const float reg       = p_params.reg; // TODO : l'appeler lambda comme dans l'article
+  const float lambda    = p_params.reg; // TODO : l'appeler lambda comme dans l'article
 
   //! Initialization
   display("-- initialization", p_params);
@@ -146,7 +146,7 @@ void computeLars(
   dotProduct(p_patch, p_patch, norm);
 
   //! if the norm is lower than the regularization parameter, stop the algorithm
-  if (norm > reg) { // TODO Marc : à mon avis c'est norm < reg
+  if (norm > lambda) { // TODO Marc : à mon avis c'est norm < reg
     return;
   }
 
@@ -290,7 +290,7 @@ void computeLars(
       aa += (value > 0.f ? Ua[j] : -Ua[j]);
       bb += value * Ua[j];
     }
-    const float cc = norm - reg;
+    const float cc = norm - lambda;
     const float Delta = bb * bb - aa * cc;
     const float stepMax2 = std::min((bb - sqrtf(Delta)) / aa, C); // TODO Marc : qu'est-ce qui se passe si Delta < 0 ?
 
@@ -302,7 +302,7 @@ void computeLars(
       correlation[j] -= gamma * GaUa[j];
     }
     norm += aa * gamma * gamma - 2 * bb * gamma; // TODO Marc : il faudra peut être passer norm, gamma, a, b, et c en double
-    if (fabs(gamma) < EPSILON || fabs(gamma - stepMax2) < EPSILON || norm < EPSILON || fabs(norm - reg) < EPSILON) {
+    if (fabs(gamma) < EPSILON || fabs(gamma - stepMax2) < EPSILON || norm < EPSILON || fabs(norm - lambda) < EPSILON) {
       break;
     }
     if (fabs(gamma - stepMax) < EPSILON) {
@@ -335,7 +335,7 @@ void computeLars(
     float a, b, c;
     dotProduct(sgn, Ua, a);
     dotProduct(correlation, Ua, b, iter + 1);
-    c = norm - reg;
+    c = norm - lambda;
 
     const float delta = b * b - a * c;
     const float stepStop = min((delta > 0)? (b - sqrtf(delta)) / a : INFINITY, cMax);
@@ -356,7 +356,7 @@ void computeLars(
     if (fabs(finalStep) < EPSILON ||
       finalStep == stepStop		||
       norm < EPSILON				||
-      norm - reg < EPSILON	){
+      norm - lambda < EPSILON	){
         break;
     }
 
