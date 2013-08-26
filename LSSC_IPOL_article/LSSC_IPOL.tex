@@ -193,7 +193,7 @@ LOOP, see below
 	ratio $\in \mathbb{R}^i \leftarrow$ $\left(-\frac{\code[\A[j]]}{u_j}\right)_{j\in[1;i]}$\\
 	stepMAX $\in \mathbb{R}^+_* \leftarrow$ $\min^+(\text{ratio})$ ($\min^+$ is the minimum between strictly positive values only)\\
 	criticalInd $\in [1;\dsize] \leftarrow \A[j]$ s.t. ratio[j] =	stepMAX\\
-	$C \leftarrow$ $\clars[\A[1]] = \max_{j=1..\dsize}(|\clars_j|)$ {\color{blue} Marc : \c ca ne devrait pas \^etre C = max $\clars[j]$ ?}{\color{red} Yohann : c est pareil (apres correction)} \\
+	$C \leftarrow |\clars[\A[1]]| = \max_{j=1..\dsize}(|\clars_j|)$ {\color{blue} Marc : \c ca ne devrait pas \^etre C = max $\clars[j]$ ?}{\color{red} Yohann : c est pareil (apres correction)} \\
 	$\gamma \in \mathbb{R}^+_* \leftarrow$ $\min^+\left(\frac{C \pm \clars_j}{1 \pm (G_Au)[j]}\right)_{j \text{ s.t. } \A[j] = 0}$ {\color{blue} Marc : \c ca fait 2 possibilit\'es ou bien 4 avec les $\pm$ ?}{\color{red} Yohann : 4 possibilites}\\
 	---POLYNOMIAL RESOLUTION---\\
 	$a \in \mathbb{R} \leftarrow$ $\sum_{j \in [1;i]} \text{sgn}(\clars[\A[j]])u[j]$\\

@@ -177,7 +177,7 @@ void computeLars(
     
     // TODO: debug mode
     if(p_params.verbose){
-      cout << "current index is: " << currentIndex << endl;
+      cout << "-- " << iter + 1 << "-th iteration, the current index is: " << currentIndex << endl;
     }
 
     //! NEW ATOM
@@ -210,7 +210,21 @@ void computeLars(
     float gamma = p_params.INFINITY;
 
     //! current maximum of correlation
-    C = correlation[A[0]];
+    C = fabs(correlation[A[0]]);
+
+    // TODO: debug to test if c(A[0]) is really the max (should be)
+    for(unsigned int j = 0; j < iter; j++){
+      if( fabs(correlation[A[j]]) != C){
+        cout << "ERROR: wrong correlation for active index, |c(" << j << ")| = " << fabs(correlation[A[j]]) << " != " << C << endl;
+      }
+    }
+    
+    // TODO: and if all the active indexees have the same correlation
+    for(unsigned int j = 0; j < k; j++){
+      if( fabs(correlation[j]) > C){
+        cout << "ERROR: wrong maximum of correlation, |c(" << j << ")| = " << fabs(correlation[A[j]]) << " > " << C << endl;
+      }
+    }
 
     //! Compute Gamma
     vector<float> GaU;
@@ -238,6 +252,11 @@ void computeLars(
       }
     }
 
+    // TODO: this condition should not appear
+    if(gamma <= 0){
+      cout << "ERROR: gamma should be positive without this condition" << endl;
+    }
+
     //! Compute STEPMAX
     float stepDownDate          = p_params.INFINITY;
     unsigned int downdateIndex  = 0;
@@ -247,6 +266,11 @@ void computeLars(
         stepDownDate = ratio;
         downdateIndex = A[j];
       }
+    }
+
+    // TODO: this condition should not appear
+    if(stepDownDate <= 0){
+      cout << "ERROR: stepDownDate should be positive without this condition" << endl;
     }
 
     //! POLYNOMIAL RESOLUTION
@@ -259,17 +283,29 @@ void computeLars(
     }
     const float c = normPatch - lambda;
     const float delta = b * b - a * c;
-    const float stepMax2 = (delta > 0.f ? std::min((b - sqrtf(delta)) / a, C) : p_params.INFINITY);
+    float stepMax = (delta > 0.f ? std::min((b - sqrtf(delta)) / a, C) : p_params.INFINITY);
+    // TODO: this condition should not appear + stepMax has to be const
+    if(stepMax <= 0){
+      cout << "ERROR: stepMax should be positive without this condition" << endl;
+      stepMax = C;
+    }
 
     //! FINAL STEP and BREAK
-    gamma = std::min(std::min(gamma, stepDownDate), stepMax2);
+    // TODO: debug mode
+    cout << "gamma: " << gamma << " downdate step: " << stepDownDate << " step max: " << stepMax << endl;
+    gamma = std::min(std::min(gamma, stepDownDate), stepMax);
+    // break if the step is too high
+    if(gamma >= p_params.INFINITY/2){
+      display(" the step is too high", p_params);
+      break;
+    }
     display(gamma, p_params);
     for (unsigned int j = 0; j <= iter ; j++) {
       o_alpha[A[j]]  += gamma * u [j];
       correlation[j] -= gamma * GaU[j];
     }
     normPatch += a * gamma * gamma - 2 * b * gamma; // TODO Marc : il faudra peut être passer normPatch, gamma, a, b, et c en double
-    if (fabs(gamma) < p_params.EPSILON || fabs(gamma - stepMax2) < p_params.EPSILON || normPatch < p_params.EPSILON || fabs(normPatch - lambda) < p_params.EPSILON) {
+    if (fabs(gamma) < p_params.EPSILON || fabs(gamma - stepMax) < p_params.EPSILON || normPatch < p_params.EPSILON || fabs(normPatch - lambda) < p_params.EPSILON) {
       break;
     }
     if (fabs(gamma - stepDownDate) < p_params.EPSILON) {
