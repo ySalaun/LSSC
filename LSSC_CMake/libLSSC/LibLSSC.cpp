@@ -22,12 +22,8 @@
 using namespace std;
 
 #ifdef __linux__
-#include <limits>
 #include <math.h>
-#else
-#define INFINITY	numeric_limits<float>::max()
 #endif
-#define EPSILON		1e-15 // TODO mettre dans parameters
 
 //! train the algorithm with the L1 norm
 void trainL1(
@@ -127,45 +123,43 @@ void computeLars(
   vector<float> &o_alpha){
 
   //! For convenience
-  const unsigned int nb = p_params.k; // TODO : l'appeler k
+  const unsigned int k  = p_params.k;
   const float lambda    = p_params.reg;
 
   //! Initialization
   display("-- initialization", p_params);
 
   //! matrices parameters
-  Matrix G    (nb, nb);
-  Matrix Ga   (nb, nb);
-  Matrix Gs   (nb, nb);
-  Matrix invGs(nb, nb);
+  Matrix G    (k, k);
+  Matrix Ga   (k, k);
+  Matrix Gs   (k, k);
+  Matrix invGs(k, k);
   G.productAtB(p_dict, p_dict);
 
   //! add EPSILON to diagonal elements in G
-  // TODO: dunno why but inside Mairal's code
   // TODO Marc : voir si on peut le supprimer
-  for(unsigned int k = 0; k < nb; k++){
-    G(k, k) += EPSILON;
+  for(unsigned int k = 0; k < k; k++){
+    G(k, k) += p_params.EPSILON;
   }
 
   //! noisy picture norm
-  float norm; // TODO Marc : l'appeler normPatch en correspondance avec l'article
-  dotProduct(p_patch, p_patch, norm);
+  float normPatch;
+  dotProduct(p_patch, p_patch, normPatch);
 
   //! Code
-  o_alpha.assign(nb, 0);
+  o_alpha.assign(k, 0);
 
   //! active set indexes
-  //vector<int> activeIndexes(0);
-  vector<int> A(nb, -1);
+  vector<int> A(k, -1);
 
   //! most correlated element
   vector<float> correlation;
   p_dict.productAtx(p_patch, correlation);
-  float cMax = fabs(correlation[0]); // TODO : remplacer par C
+  float C = fabs(correlation[0]);
   unsigned int currentIndex = 0;
   for (unsigned int n = 1; n < correlation.size(); n++) {
-    if (fabs(correlation[n]) > cMax) {
-      cMax = fabs(correlation[n]);
+    if (fabs(correlation[n]) > C) {
+      C = fabs(correlation[n]);
       currentIndex = n;
     }
   }
@@ -174,13 +168,17 @@ void computeLars(
   bool newAtom = true;
 
   //! if the norm is greater than the regularization parameter, stop the algorithm
-  if (norm > lambda) {
+  if (normPatch > lambda) {
     return;
   }
 
   //! add the new most correlated element at each iteration
-  for (unsigned int iter = 0; iter < nb;) {
-    //cout << currentIndex << endl;
+  for (unsigned int iter = 0; iter < k;) {
+    
+    // TODO: debug mode
+    if(p_params.verbose){
+      cout << "current index is: " << currentIndex << endl;
+    }
 
     //! NEW ATOM
     if (newAtom) {
@@ -204,85 +202,86 @@ void computeLars(
 
     //! compute direction vector
     //! Ua = invGs * sgn
-    vector<float> Ua; // TODO Marc : le noter u
-    invGs.productAx(sgn, Ua, iter + 1);
+    vector<float> u;
+    invGs.productAx(sgn, u, iter + 1);
 
     //! STEP
-    display("-- compute step", p_params);
-    float step = INFINITY; // TODO renoter en gamma
+    display("-- compute step: ", p_params, false);
+    float gamma = p_params.INFINITY;
 
     //! current maximum of correlation
-    cMax = correlation[A[0]];
+    C = correlation[A[0]];
 
     //! Compute Gamma
     vector<float> GaU;
-    Ga.productAx(Ua, GaU, iter + 1);
+    Ga.productAx(u, GaU, iter + 1);
 
-    for (unsigned int j = 0; j < nb; j++) {
+    for (unsigned int j = 0; j < k; j++) {
       if (A[j] < 0) {
         continue;
       }
 
       if (1 + GaU[j] > 0) {
-        const float value = (cMax + correlation[j]) / (1 + GaU[j]);
-        if (value < step) {
-          step         = value;
+        const float value = (C + correlation[j]) / (1 + GaU[j]);
+        if (value < gamma) {
+          gamma        = value;
           currentIndex = j;
         }
       }
 
       if (1 - GaU[j] > 0) {
-        const float value = (cMax - correlation[j]) / (1 - GaU[j]);
-        if (value < step) {
-          step         = value;
+        const float value = (C - correlation[j]) / (1 - GaU[j]);
+        if (value < gamma) {
+          gamma        = value;
           currentIndex = j;
         }
       }
     }
 
     //! Compute STEPMAX
-    float stepMax = INFINITY; // renommer stepDownDate
-    unsigned int criticalIndex = 0; // renommer downdateIndex
+    float stepDownDate          = p_params.INFINITY;
+    unsigned int downdateIndex  = 0;
     for (unsigned int j = 0; j <= iter; j++) {
-      const float ratio = -o_alpha[A[j]] / Ua[j];
-      if (ratio > 0.f && ratio < stepMax) {
-        stepMax = ratio;
-        criticalIndex = A[j];
+      const float ratio = -o_alpha[A[j]] / u[j];
+      if (ratio > 0.f && ratio < stepDownDate) {
+        stepDownDate = ratio;
+        downdateIndex = A[j];
       }
     }
 
     //! POLYNOMIAL RESOLUTION
-    float aa = 0.f; // TODO Marc : je double le nom des variables pour ne pas entrer en collision avec le code qui suit
-    float bb = 0.f;
+    float a = 0.f;
+    float b = 0.f;
     for (unsigned int j = 0; j <= iter; j++) {
       const float value = correlation[A[j]];
-      aa += sgn[j] * Ua[j];
-      bb += value  * Ua[j];
+      a += sgn[j] * u[j];
+      b += value  * u[j];
     }
-    const float cc = norm - lambda;
-    const float Delta = bb * bb - aa * cc;
-    const float stepMax2 = (Delta > 0.f ? std::min((bb - sqrtf(Delta)) / aa, cMax) : INFINITY);
+    const float c = normPatch - lambda;
+    const float delta = b * b - a * c;
+    const float stepMax2 = (delta > 0.f ? std::min((b - sqrtf(delta)) / a, C) : p_params.INFINITY);
 
     //! FINAL STEP and BREAK
-    float gamma = step; // TODO : à supprimer
-    gamma = std::min(std::min(gamma, stepMax), stepMax2);
+    gamma = std::min(std::min(gamma, stepDownDate), stepMax2);
+    display(gamma, p_params);
     for (unsigned int j = 0; j <= iter ; j++) {
-      o_alpha[A[j]]  += gamma * Ua [j];
+      o_alpha[A[j]]  += gamma * u [j];
       correlation[j] -= gamma * GaU[j];
     }
-    norm += aa * gamma * gamma - 2 * bb * gamma; // TODO Marc : il faudra peut être passer norm, gamma, a, b, et c en double
-    if (fabs(gamma) < EPSILON || fabs(gamma - stepMax2) < EPSILON || norm < EPSILON || fabs(norm - lambda) < EPSILON) {
+    normPatch += a * gamma * gamma - 2 * b * gamma; // TODO Marc : il faudra peut être passer normPatch, gamma, a, b, et c en double
+    if (fabs(gamma) < p_params.EPSILON || fabs(gamma - stepMax2) < p_params.EPSILON || normPatch < p_params.EPSILON || fabs(normPatch - lambda) < p_params.EPSILON) {
       break;
     }
-    if (fabs(gamma - stepMax) < EPSILON) {
-      downdateGram(invGs, Gs, Ga, iter, criticalIndex);
-      A[criticalIndex] = -1;
-      o_alpha[criticalIndex] = 0;
-      newAtom = false;
+    if (fabs(gamma - stepDownDate) < p_params.EPSILON) {
+      display("-- downdate Gram matrices", p_params);
+      downdateGram(invGs, Gs, Ga, iter, downdateIndex);
+      A[downdateIndex]        = -1;
+      o_alpha[downdateIndex]  = 0;
+      newAtom                 = false;
       iter--;
     }
     else {
-      newAtom = true;
+      newAtom                 = true;
       iter++;
     }
   }
@@ -295,7 +294,6 @@ void updateGram(
   Matrix &io_invGs,
   Matrix const& i_Gs,
   const unsigned int p_iter){
-
   //! case when the matrix is 1x1
   if (p_iter == 0) {
     // TODO fix the div by zero issue
@@ -338,50 +336,9 @@ void updateGram(
   }
 }
 
-
-//! Downdate the inverse of the Gram matrix
-void downdateGram(
-  Matrix &io_invGs,
-  Matrix &io_Gs,
-  Matrix &io_Ga,
-  const unsigned int p_iter,
-  const unsigned int p_critIndex){
-
-  // TODO Marc: sigma n'est pas utilisé
-  //! Sigma = 1 / Gs^{-1}(critInd, critInd)
-//  const float sigma = 1.f / io_invGs(p_critIndex, p_critIndex);
-
-  //! u = Gs^-1[critInd-th row]\{Gs^-1_critInd,critInd}
-  vector<float> u;
-  io_invGs.getRow(u, p_critIndex, p_iter + 1);
-  u.erase(u.begin() + p_critIndex);
-
-  //! delete critInd-th row and critInd-th column (only for Gs and Gs^-1)
-  for(unsigned int i = p_critIndex; i < p_iter; i++){
-    for(unsigned int j = 0; j < p_critIndex; j++){
-      io_Ga   (i,j) = io_Ga   (i, j+1);
-      io_Gs   (i,j) = io_Gs   (i, j+1);
-      io_invGs(i,j) = io_invGs(i, j+1);
-    }
-    for(unsigned int j = p_critIndex; j < p_iter; j++){
-      io_Ga(i,j) = io_Ga(i, j+1);
-      io_Gs(i,j) = io_Gs(i+1, j+1);
-      io_invGs(i,j) = io_invGs(i+1, j+1);
-    }
-  }
-
-
-  io_Gs.symmetrizeUpperPart(p_iter-1);
-  io_invGs.symmetrizeUpperPart(p_iter-1);
-
-  //! Gs^-1 = Gs^-1 - sigma u u^t
-  io_invGs.addXYt(u, u, p_iter-1); // TODO Marc : il manque sigma quelque part non ?
-}
-
-
 //! Downdate the inverse of the Gram matrix
 // TODO Marc : à regarder si cette fonction est la bonne
-void downdateGramBis(
+void downdateGram(
   Matrix &io_invGs,
   Matrix &io_Gs,
   Matrix &io_Ga,
@@ -399,7 +356,7 @@ void downdateGramBis(
   //! delete critInd-th row and critInd-th column
   io_Gs   .removeRowCol(p_critIndex, p_critIndex, p_iter, p_iter);
   io_invGs.removeRowCol(p_critIndex, p_critIndex, p_iter, p_iter);
-  io_Ga   .removeRowCol(p_critIndex, p_critIndex, p_iter, p_iter);
+  io_Ga   .removeRowCol(0,           p_critIndex, 0,      p_iter);
 
   //! Gs^-1 = Gs^-1 - sigma u u^t
   vector<float> v(p_iter - 1);

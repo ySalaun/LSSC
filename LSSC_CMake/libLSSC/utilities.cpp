@@ -30,6 +30,15 @@ void display(const char* msg,  const Parameters &params, bool endline){
   }
 }
 
+void display(const float x,  const Parameters &params, bool endline){
+  if(params.verbose){
+    cout << x;
+    if(endline){
+      cout << endl;
+    }
+  }
+}
+
 void display(const vector<float>& vec){
   for(unsigned int i = 0; i< vec.size(); ++i){
     cout << vec[i] << "/";

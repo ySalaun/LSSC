@@ -28,6 +28,7 @@
 using namespace std;
 
 void display(const char* msg, const Parameters &params, bool endline = true);
+void display(const float x,   const Parameters &params, bool endline = true);
 void display(const vector<float>& vec);
 void display(const Matrix & mat, const int iMax = -1);
 

@@ -20,6 +20,8 @@
 #ifndef PARAMETERS_INCLUDED
 #define PARAMETERS_INCLUDED
 
+#include <limits>
+
 struct Parameters{
   // Picture informations
   unsigned int w;           // width
@@ -43,6 +45,31 @@ struct Parameters{
 
   // Verbose option
   bool verbose;
+
+  // Constants
+  float INFINITY;
+  float EPSILON;
+
+  Parameters(int imH, int imW){
+    h               = imH;
+    w               = imW;
+    
+    sPatch          = 9;
+    m               = sPatch * sPatch;
+    k               = 512;
+    nPatch          = w*h/m;
+    nRowPatches     = w/sPatch;
+    nColPatches     = h/sPatch;
+    
+    reg             = 1e7; // TODO: compute the real value
+    
+    updateIteration = 1; // TODO Mairal used this parameter as default
+    
+    verbose         = true;
+
+    INFINITY        = std::numeric_limits<float>::max();
+    EPSILON         = 1e-15;  // TODO: change ? float / double ? 1e-15 or another number ?
+  }
 };
 
 #endif // PARAMETERS_INCLUDED

@@ -253,14 +253,14 @@ inverse $G_S^{-1}\in \mathbb{R}^{i \times i}$, criticalInd $\in [1; \dsize]$, cu
 \textbf{Output} : downdated matrices $G_A \in \mathbb{R}^{\dsize \times i-1}, G_S, G_S^{-1} \in \mathbb{R}^{i-1 \times i-1}$\\
 
 $\sigma \ \leftarrow \ \frac{1}{G_S^{-1}(\text{criticalInd}, \text{criticalInd})}$\\
-$u \ \leftarrow \ G_S^{-1} [$criticalInd$^{th}$ line] without its criticalInd$^{th}$ coefficient\\
+$u \in \mathbb{R}^{i-1} \leftarrow \ G_S^{-1} [$criticalInd$^{th}$ line] without its criticalInd$^{th}$ coefficient\\
 \For{j= criticalInd:i-1}{
 	$G_A[j^{th}$ column] $\leftarrow$ $G_A[(j+1)^{th}$ column]\\
 	\For{k= 1:criticalInd-1}{
 		$G_S(j,k)$ $\leftarrow$ $G_S(j+1,k)$\\
 		$G_S^{-1}(j,k)$ $\leftarrow$ $G_S^{-1}(j+1,k)$\\
 	}
-	\For{k= criticalInd:i}{
+	\For{k= criticalInd:i-1}{
 		$G_S(j,k)$ $\leftarrow$ $G_S(j+1,k+1)$\\
 		$G_S^{-1}(j,k)$ $\leftarrow$ $G_S^{-1}(j+1,k+1)$\\
 	}
