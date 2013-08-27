@@ -47,28 +47,33 @@ struct Parameters{
   bool verbose;
 
   // Constants
-  float INFINITY;
-  float EPSILON;
+  float infinity;
+  float epsilon;
+
+  // Debug
+  bool debug;
 
   Parameters(int imH, int imW){
     h               = imH;
     w               = imW;
-    
+
     sPatch          = 9;
     m               = sPatch * sPatch;
     k               = 512;
     nPatch          = w*h/m;
     nRowPatches     = w/sPatch;
     nColPatches     = h/sPatch;
-    
+
     reg             = 1e7; // TODO: compute the real value
-    
+
     updateIteration = 1; // TODO Mairal used this parameter as default
-    
+
     verbose         = true;
 
-    INFINITY        = std::numeric_limits<float>::max();
-    EPSILON         = 1e-15;  // TODO: change ? float / double ? 1e-15 or another number ?
+    infinity        = std::numeric_limits<float>::max();
+    epsilon         = 1e-15f;  // TODO: change ? float / double ? 1e-15 or another number ?
+
+    debug           = true;
   }
 };
 

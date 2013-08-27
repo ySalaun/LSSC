@@ -26,7 +26,7 @@
 #ifdef __linux__
 #include "../libImages/LibImages.h"
 #include "../libLSSC/LibLSSC.h"
-#include "../libORMP/LibORMP.h"
+#include "../libORMP/LibOrmp.h"
 #else
 #include "libImages/LibImages.h"
 #include "libLSSC/LibLSSC.h"
@@ -69,37 +69,6 @@ int argc
   // TODO remark, for now the pictures are considered to be B&W
   // TODO the parameters have to be smarter
   Parameters params(imSize.height, imSize.width);
-
-  /** For test **/
-  bool test = false;
-  if(test){
-    Matrix D(params.m, params.k);
-    Matrix A(params.k, params.k);
-    Matrix B(params.m, params.k);
-
-    for (unsigned int i = 0; i < params.m; i++) {
-      for (unsigned int j = 0; j < params.k; j++) {
-        D(i, j) = i * 2 + j * 3;
-        B(i, j) = i % 5 + 3 * (j % 2);
-      }
-    }
-    for (unsigned int i = 0; i < params.k; i++) {
-      for (unsigned int j = 0; j < params.k; j++) {
-        A(i, j) = 5 * i - 0.5f * j;
-      }
-    }
-    Matrix Dbis(D);
-
-    Matrix M(5, 5);
-    for (unsigned int i = 0; i < 5; i++) {
-      for (unsigned int j = 0; j < 5; j++) {
-        M(i,j) = i * 5 + j + 1;
-      }
-    }
-
-    return EXIT_SUCCESS;
-  }
-  /** End test**/
 
   //! read initial dictionary
   Matrix dict(params.m, params.k);

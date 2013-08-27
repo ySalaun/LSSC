@@ -30,7 +30,7 @@
 * @param io_dict : table that contains the dictionary coefficients;
 * @param i_noisy : noisy picture;
 * @param p_nPatch : number of iid patches used for the update;
-* @param params : global parameters.
+* @param p_params : global parameters.
 *
 * @return none.
 **/
@@ -38,7 +38,7 @@ void trainL1(
   Matrix &io_dict,
   const vector<float> &i_noisy,
   const unsigned int p_nPatch,
-  const Parameters &params);
+  const Parameters &p_params);
 
 
 /**

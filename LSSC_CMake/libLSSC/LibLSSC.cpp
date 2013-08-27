@@ -30,13 +30,13 @@ void trainL1(
   Matrix &io_dict,
   const vector<float> &i_imNoisy,
   const unsigned int p_nPatch,
-  const Parameters &params){
+  const Parameters &p_params){
 
   //! For convenience
-  const unsigned int sP = params.sPatch;
-  const unsigned int w  = params.w;
-  const unsigned int k  = params.k;
-  const unsigned int m  = params.m;
+  const unsigned int sP = p_params.sPatch;
+  const unsigned int w  = p_params.w;
+  const unsigned int k  = p_params.k;
+  const unsigned int m  = p_params.m;
 
   //! matrices used for the dictionnary update
   Matrix A(k, k);
@@ -46,15 +46,15 @@ void trainL1(
   vector<float> alpha(k, 0.f);
 
   //! generation of p_nPatch iid patches
-  display("- generation of iid patches", params, false);
+  display("- generation of iid patches", p_params, false);
   vector<unsigned int> iidPatches(p_nPatch, 0);
-  getRandList(p_nPatch, params.nPatch, iidPatches);
-  display("...done", params);
+  getRandList(p_nPatch, p_params.nPatch, iidPatches);
+  display("...done", p_params);
 
   for (unsigned int n = 0; n < p_nPatch; n++) {
     vector<float> patch(m, 0.f);
-    const unsigned int i = iidPatches[n] / params.nRowPatches * sP;
-    const unsigned int j = iidPatches[n] % params.nRowPatches * sP;
+    const unsigned int i = iidPatches[n] / p_params.nRowPatches * sP;
+    const unsigned int j = iidPatches[n] % p_params.nRowPatches * sP;
     const float* iI      = &i_imNoisy[i * w + j];
     float* iP            = &patch[0];
 
@@ -66,21 +66,23 @@ void trainL1(
     }
 
     //! LARS
-    display("- LARS", params);
+    display("- LARS", p_params);
     vector<float> alpha;
-    computeLars(io_dict, patch, params, alpha);
+    computeLars(io_dict, patch, p_params, alpha);
     // TODO debug mode
-    for(unsigned int n = 0; n < k; n++){
-      cout << alpha[n] << " " ;
+    if (p_params.debug) {
+      for(unsigned int n = 0; n < k; n++){
+        cout << alpha[n] << " " ;
+      }
+      cout << endl;
     }
-    cout << endl;
     A.addXYt(alpha, alpha);
     B.addXYt(patch, alpha);
 
     //! Update
-    display("- dictionary update", params, false);
-    updateDictionary(io_dict, A, B, params);
-    display("...done", params);
+    display("- dictionary update", p_params, false);
+    updateDictionary(io_dict, A, B, p_params);
+    display("...done", p_params);
   }
 }
 
@@ -116,6 +118,7 @@ void getRandList(
 
 
 //! lars algorithm that minimizes ||alpha||_1 s.t. ||i_noisy - dict*alpha||_2 < lambda
+// TODO Marc : à valider en test réel (algo correspondant)
 void computeLars(
   const Matrix &p_dict,
   const vector<float> &p_patch,
@@ -138,8 +141,8 @@ void computeLars(
 
   //! add EPSILON to diagonal elements in G
   // TODO Marc : voir si on peut le supprimer
-  for(unsigned int k = 0; k < k; k++){
-    G(k, k) += p_params.EPSILON;
+  for(unsigned int i = 0; i < k; i++){
+    G(i, i) += p_params.epsilon;
   }
 
   //! noisy picture norm
@@ -173,62 +176,67 @@ void computeLars(
   }
 
   //! add the new most correlated element at each iteration
-  for (unsigned int iter = 0; iter < k;) {
-    
+  for (unsigned int i = 0; i < k;) {
+
     // TODO: debug mode
-    if(p_params.verbose){
-      cout << "-- " << iter + 1 << "-th iteration, the current index is: " << currentIndex << endl;
+    if(p_params.verbose && p_params.debug) {
+      cout << "-- " << i + 1 << "-th iteration, the current index is: " << currentIndex << endl;
     }
 
     //! NEW ATOM
     if (newAtom) {
       display("-- new atom", p_params);
-      A[iter] = currentIndex;
-      Ga.copyCol(G , currentIndex, iter);
-      Gs.copyRow(Ga, currentIndex, iter);
-      Gs.symmetrizeUpperPart(iter);
-      updateGram(invGs, Gs, iter);
+      A[i] = currentIndex;
+      Ga.copyCol(G , currentIndex, i);
+      Gs.copyRow(Ga, currentIndex, i);
+      Gs.symmetrizeUpperPart(i);
+      updateGram(invGs, Gs, i);
     }
 
     //! VARIABLES UPDATES
     //! compute sign vector
     //! sgn = sgn(c)
-    vector<float> sgn(iter + 1, 1.f);
-    for (unsigned int j = 0; j <= iter; j++) {
+    vector<float> sgn(i + 1, 1.f);
+    for (unsigned int j = 0; j <= i; j++) {
       if (correlation[A[j]] < 0) {
         sgn[j] = -1.f;
       }
     }
 
     //! compute direction vector
-    //! Ua = invGs * sgn
+    //! u = invGs * sgn
     vector<float> u;
-    invGs.productAx(sgn, u, iter + 1);
+    invGs.productAx(sgn, u, i + 1);
 
     //! STEP
     display("-- compute step: ", p_params, false);
-    float gamma = p_params.INFINITY;
+    float gamma = p_params.infinity;
 
     //! current maximum of correlation
     C = fabs(correlation[A[0]]);
 
     // TODO: debug to test if c(A[0]) is really the max (should be)
-    for(unsigned int j = 0; j < iter; j++){
-      if( fabs(correlation[A[j]]) != C){
-        cout << "ERROR: wrong correlation for active index, |c(" << j << ")| = " << fabs(correlation[A[j]]) << " != " << C << endl;
+    if (p_params.debug) {
+      for(unsigned int j = 0; j < i; j++){
+        if( fabs(correlation[A[j]]) != C){
+          cout << "ERROR: wrong correlation for active index, |c(" << j << ")| = " << fabs(correlation[A[j]]) << " != " << C << endl;
+        }
       }
     }
-    
+
     // TODO: and if all the active indexees have the same correlation
-    for(unsigned int j = 0; j < k; j++){
-      if( fabs(correlation[j]) > C){
-        cout << "ERROR: wrong maximum of correlation, |c(" << j << ")| = " << fabs(correlation[A[j]]) << " > " << C << endl;
+    if (p_params.debug) {
+      for(unsigned int j = 0; j < k; j++){
+        if( fabs(correlation[j]) > C){
+          cout << "ERROR: wrong maximum of correlation, |c(" << j << ")| = " << fabs(correlation[A[j]]) << " > " << C << endl;
+          // TODO Marc: il y a un probleme entre ce que tu affiches et ce que tu testes... c'est normal ?
+        }
       }
     }
 
     //! Compute Gamma
     vector<float> GaU;
-    Ga.productAx(u, GaU, iter + 1);
+    Ga.productAx(u, GaU, i + 1);
 
     for (unsigned int j = 0; j < k; j++) {
       if (A[j] < 0) {
@@ -257,14 +265,14 @@ void computeLars(
       cout << "ERROR: gamma should be positive without this condition" << endl;
     }
 
-    //! Compute STEPMAX
-    float stepDownDate          = p_params.INFINITY;
-    unsigned int downdateIndex  = 0;
-    for (unsigned int j = 0; j <= iter; j++) {
+    //! Compute stepDownDate
+    float stepDownDate          = p_params.infinity;
+    unsigned int downDateIndex  = 0;
+    for (unsigned int j = 0; j <= i; j++) {
       const float ratio = -o_alpha[A[j]] / u[j];
       if (ratio > 0.f && ratio < stepDownDate) {
-        stepDownDate = ratio;
-        downdateIndex = A[j];
+        stepDownDate  = ratio;
+        downDateIndex = A[j];
       }
     }
 
@@ -276,14 +284,14 @@ void computeLars(
     //! POLYNOMIAL RESOLUTION
     float a = 0.f;
     float b = 0.f;
-    for (unsigned int j = 0; j <= iter; j++) {
+    for (unsigned int j = 0; j <= i; j++) {
       const float value = correlation[A[j]];
       a += sgn[j] * u[j];
       b += value  * u[j];
     }
-    const float c = normPatch - lambda;
+    const float c     = normPatch - lambda;
     const float delta = b * b - a * c;
-    float stepMax = (delta > 0.f ? std::min((b - sqrtf(delta)) / a, C) : p_params.INFINITY);
+    float stepMax     = (delta > 0.f ? std::min((b - sqrtf(delta)) / a, C) : p_params.infinity);
     // TODO: this condition should not appear + stepMax has to be const
     if(stepMax <= 0){
       cout << "ERROR: stepMax should be positive without this condition" << endl;
@@ -292,40 +300,47 @@ void computeLars(
 
     //! FINAL STEP and BREAK
     // TODO: debug mode
-    cout << "gamma: " << gamma << " downdate step: " << stepDownDate << " step max: " << stepMax << endl;
+    if (p_params.debug) {
+      cout << "gamma: " << gamma << " downdate step: " << stepDownDate << " step max: " << stepMax << endl;
+    }
     gamma = std::min(std::min(gamma, stepDownDate), stepMax);
     // break if the step is too high
-    if(gamma >= p_params.INFINITY/2){
+    if(gamma >= p_params.infinity / 2){
       display(" the step is too high", p_params);
       break;
     }
-    display(gamma, p_params);
-    for (unsigned int j = 0; j <= iter ; j++) {
-      o_alpha[A[j]]  += gamma * u [j];
+    if (p_params.debug) {
+      display(gamma, p_params);
+    }
+    for (unsigned int j = 0; j <= i ; j++) {
+      o_alpha[A[j]]  += gamma * u  [j];
       correlation[j] -= gamma * GaU[j];
     }
     normPatch += a * gamma * gamma - 2 * b * gamma; // TODO Marc : il faudra peut être passer normPatch, gamma, a, b, et c en double
-    if (fabs(gamma) < p_params.EPSILON || fabs(gamma - stepMax) < p_params.EPSILON || normPatch < p_params.EPSILON || fabs(normPatch - lambda) < p_params.EPSILON) {
+    if (fabs(gamma)              < p_params.epsilon ||
+        fabs(gamma - stepMax)    < p_params.epsilon ||
+        normPatch                < p_params.epsilon ||
+        fabs(normPatch - lambda) < p_params.epsilon) {
       break;
     }
-    if (fabs(gamma - stepDownDate) < p_params.EPSILON) {
+    if (fabs(gamma - stepDownDate) < p_params.epsilon) {
       display("-- downdate Gram matrices", p_params);
-      downdateGram(invGs, Gs, Ga, iter, downdateIndex);
-      A[downdateIndex]        = -1;
-      o_alpha[downdateIndex]  = 0;
-      newAtom                 = false;
-      iter--;
+      downdateGram(invGs, Gs, Ga, i, downDateIndex);
+      A      [downDateIndex] = -1;
+      o_alpha[downDateIndex] = 0;
+      newAtom                = false;
+      i--;
     }
     else {
-      newAtom                 = true;
-      iter++;
+      newAtom                = true;
+      i++;
     }
   }
 }
 
 
 //! Update the inverse of the Gram matrix
-// TODO Marc : à valider
+// TODO Marc : à valider en test réel (algo correspondant)
 void updateGram(
   Matrix &io_invGs,
   Matrix const& i_Gs,
@@ -373,7 +388,7 @@ void updateGram(
 }
 
 //! Downdate the inverse of the Gram matrix
-// TODO Marc : à regarder si cette fonction est la bonne
+// TODO Marc : à valider en test réel (algo correspondant)
 void downdateGram(
   Matrix &io_invGs,
   Matrix &io_Gs,
@@ -386,20 +401,22 @@ void downdateGram(
 
   //! u = Gs^-1[critInd-th row]\{Gs^-1_critInd,critInd}
   vector<float> u;
-  io_invGs.getRow(u, p_critIndex, p_iter + 1);
+  io_invGs.getRow(u, p_critIndex, p_iter);
   u.erase(u.begin() + p_critIndex);
 
   //! delete critInd-th row and critInd-th column
   io_Gs   .removeRowCol(p_critIndex, p_critIndex, p_iter, p_iter);
   io_invGs.removeRowCol(p_critIndex, p_critIndex, p_iter, p_iter);
-  io_Ga   .removeRowCol(0,           p_critIndex, 0,      p_iter);
+
+  //! delete the critInd-th column
+  io_Ga   .removeRowCol(p_iter + 1 , p_critIndex, p_iter, p_iter);
 
   //! Gs^-1 = Gs^-1 - sigma u u^t
   vector<float> v(p_iter - 1);
   for (unsigned int i = 0; i < p_iter - 1; i++) {
     v[i] = -sigma * u[i];
   }
-  io_invGs.addXYt(u, v, p_iter-1);
+  io_invGs.addXYt(u, v, p_iter - 1);
 }
 
 

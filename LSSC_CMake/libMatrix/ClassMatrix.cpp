@@ -580,15 +580,15 @@ void Matrix::removeRowCol(
   const int p_jMax){
 
   //! Initializations
-  const unsigned int m = (p_iMax > -1 ? std::min(p_iMax + 1, (int) m_row) : m_row);
-  const unsigned int n = (p_jMax > -1 ? std::min(p_jMax + 1, (int) m_col) : m_col);
+  const unsigned int m = (p_iMax > -1 ? std::min(p_iMax + 1, (int) m_row - 1) : m_row - 1);
+  const unsigned int n = (p_jMax > -1 ? std::min(p_jMax + 1, (int) m_col - 1) : m_col - 1);
 
   //! Check sizes
   if (p_iMax > (int) m_row || p_jMax > (int) m_col) {
     cerr << "removeRowCol : Error - indexes are too big for the matrix" << endl;
     return;
   }
-  if (p_row >= m || p_col >= n) {
+  if (p_row > m || p_col > n) {
     cerr << "removeRowCol : Error - line or column number is too big for the matrix" << endl;
     return;
   }
@@ -613,7 +613,6 @@ void Matrix::removeRowCol(
     }
   }
 }
-
 
 
 
