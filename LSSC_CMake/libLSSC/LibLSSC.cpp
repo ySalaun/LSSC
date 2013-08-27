@@ -170,8 +170,8 @@ void computeLars(
   //! begin by adding a new atom in the code
   bool newAtom = true;
 
-  //! if the norm is greater than the regularization parameter, stop the algorithm
-  if (normPatch > lambda) {
+  //! if the norm is lower than the regularization parameter, stop the algorithm
+  if (normPatch < lambda) {
     return;
   }
 
@@ -209,27 +209,23 @@ void computeLars(
     invGs.productAx(sgn, u, i + 1);
 
     //! STEP
-    display("-- compute step: ", p_params, false);
+    display("-- compute step: ", p_params, p_params.debug);
     float gamma = p_params.infinity;
 
     //! current maximum of correlation
     C = fabs(correlation[A[0]]);
 
     // TODO: debug to test if c(A[0]) is really the max (should be)
+    //  and if all the active indexes have the same correlation
+    // TODO: what to do when 2 coefficients have the same initial correlation ??
     if (p_params.debug) {
-      for(unsigned int j = 0; j < i; j++){
-        if( fabs(correlation[A[j]]) != C){
-          cout << "ERROR: wrong correlation for active index, |c(" << j << ")| = " << fabs(correlation[A[j]]) << " != " << C << endl;
-        }
-      }
-    }
-
-    // TODO: and if all the active indexees have the same correlation
-    if (p_params.debug) {
+      cout << "current maximum of correlation is: " << C << endl;
       for(unsigned int j = 0; j < k; j++){
-        if( fabs(correlation[j]) > C){
-          cout << "ERROR: wrong maximum of correlation, |c(" << j << ")| = " << fabs(correlation[A[j]]) << " > " << C << endl;
-          // TODO Marc: il y a un probleme entre ce que tu affiches et ce que tu testes... c'est normal ?
+        if(A[j] == -1 && fabs(correlation[j]) >= C){
+          cout << "ERROR: wrong correlation for non active index, |c(" << j << ")| = " << fabs(correlation[j]) << " >= " << C << endl;
+        }
+        else if(A[j] >= 0 &&  fabs(correlation[A[j]]) != C){
+          cout << "ERROR: wrong correlation for active index, |c(" << j << ")| = " << fabs(correlation[A[j]]) << " != " << C << endl;
         }
       }
     }
@@ -239,7 +235,7 @@ void computeLars(
     Ga.productAx(u, GaU, i + 1);
 
     for (unsigned int j = 0; j < k; j++) {
-      if (A[j] < 0) {
+      if (A[j] >= 0) {
         continue;
       }
 

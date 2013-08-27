@@ -161,8 +161,7 @@ $\clars \in \RR^{\dsize} \leftarrow \dict^T \noi$\\
 $C \in \RR^+ \leftarrow \max_{j=1..\dsize}(|\clars_j|)$ \\
 currentInd $\leftarrow j \text{ s.t. } \clars_j = C$\\
 newAtom $\leftarrow$ \textbf{True}\\
-{\color{blue} TODO: explain the condition}\\
-\If{ normPatch $> \lambda$ }{
+\If{ normPatch $< \lambda$ }{
 	\textbf{return 0}
 }
 \For{ i = 1..$\dsize$}{
