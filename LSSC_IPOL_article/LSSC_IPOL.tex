@@ -17,7 +17,7 @@
 \newcommand{\code}{\bm{\alpha}}  
 \newcommand{\pnorm}{p}
 % commands for noisy/denoised picture
-\newcommand{\Denoi}{\textbf{X}}  
+\newcommand{\Denoi}{\textbf{X}}
 \newcommand{\denoi}{\textbf{x}}
 \newcommand{\Noi}{\textbf{Y}}
 \newcommand{\noi}{\textbf{y}}
@@ -179,50 +179,54 @@ LOOP, see below
 \begin{algorithm}[H]
 
 \SetLine
+{\color{red} Marc: TODO : choisir entre les indices ou les crochets pour les indices\\}
 	---NEW ATOM---\\
 	\If{ newAtom }{
 		$\A[i] \leftarrow $ currentInd\\
 		$G_A \in \mathbb{R}^{\dsize \times i}, G_S \in \mathbb{R}^{i \times i}$\\
-		$G_A$[$i^{th}$ column] $\leftarrow$ $G$[currentInd$^{th}$ line]\\
+		$G_A$[$i^{th}$ column] $\leftarrow$ $G$[currentInd$^{th}$ column]\\
 		$G_S$[$i^{th}$ line] $\leftarrow$ $G_A$[currentInd$^{th}$ line]\\
 		symmetrize $G_S$\\
 		UPDATE $G_S^{-1}$
 	}
 	---VARIABLES UPDATES---\\
 	u $\in \mathbb{R}^i \leftarrow$ $G_S^{-1} (\text{sgn}(\clars_{\A[j]}))_{j\in [1;i]}$\\
+	$C \leftarrow |\clars[\A[1]]| = \max_{j=1..\dsize}(|\clars_j|)$\\
+	$\gamma \in \mathbb{R}^+_* \leftarrow$ $\min^+\left(\frac{C 
+	+ \clars_j}{1 + (G_Au)[j]}, \frac{C - \clars_j}{1 - (G_Au)[j]}\right)_{j \text{ s.t. } \A[j] = 0}$\\
+	currentInd $=j$ s.t. $\gamma = \frac{C \pm \clars_j}{1 \pm (G_Au)[j]}$\\
 	ratio $\in \mathbb{R}^i \leftarrow$ $\left(-\frac{\code[\A[j]]}{u_j}\right)_{j\in[1;i]}$\\
-	stepMAX $\in \mathbb{R}^+_* \leftarrow$ $\min^+(\text{ratio})$ ($\min^+$ is the minimum between strictly positive values only)\\
-	criticalInd $\in [1;\dsize] \leftarrow \A[j]$ s.t. ratio[j] =	stepMAX\\
-	$C \leftarrow |\clars[\A[1]]| = \max_{j=1..\dsize}(|\clars_j|)$ {\color{blue} Marc : \c ca ne devrait pas \^etre C = max $\clars[j]$ ?}{\color{red} Yohann : c est pareil (apres correction)} \\
-	$\gamma \in \mathbb{R}^+_* \leftarrow$ $\min^+\left(\frac{C \pm \clars_j}{1 \pm (G_Au)[j]}\right)_{j \text{ s.t. } \A[j] = 0}$ {\color{blue} Marc : \c ca fait 2 possibilit\'es ou bien 4 avec les $\pm$ ?}{\color{red} Yohann : 4 possibilites}\\
+	stepDownDate $\in \mathbb{R}^+_* \leftarrow$ $\min^+(\text{ratio})$ ($\min^+$ is the minimum between strictly positive values only)\\
+	downDateInd $\in [1;\dsize] \leftarrow \A[j]$ s.t. ratio[j] =	stepDownDate\\
 	---POLYNOMIAL RESOLUTION---\\
 	$a \in \mathbb{R} \leftarrow$ $\sum_{j \in [1;i]} \text{sgn}(\clars[\A[j]])u[j]$\\
 	$b \in \mathbb{R} \leftarrow$ $\sum_{j \in [1;i]} \clars[\A[j]] u[j]$\\
 	$c \in \mathbb{R} \leftarrow$ normPatch - $\lambda$\\
 	$\Delta \in \mathbb{R} \leftarrow$ $b^2 - ac$ \\
-	stepMAX2 $\in \mathbb{R}^+ \leftarrow$ $\min(\frac{b - \sqrt{\Delta}}{a}, C)$ \\
+	stepMAX $\in \mathbb{R}^+ \leftarrow$ $\min(\frac{b - \sqrt{\Delta}}{a}, C)$ \\
 	---FINAL STEP $\&$ BREAK---\\
-	$\gamma$ $\leftarrow$ min($\gamma$, stepMAX, stepMAX2)\\
+	$\gamma$ $\leftarrow$ min($\gamma$, stepDownDate, stepMAX)\\
 	\For{ j = 1..i}{
 		$\code[\A[j]] \leftarrow \code[\A[j]] + \gamma$u[j]\\
 	}	
 	$\clars$ $\leftarrow$ $\clars - \gamma G_Au$ \\
 	normPatch $\leftarrow$ normPatch + $a\gamma^2 - 2b\gamma$ \\
-	\If{ $|\gamma| <1e^{-6} \ ||\ \gamma = stepMAX2 \ ||\ $normPatch $ < 1e^{-6} \ ||\ $normPatch $ - \lambda < 1e^{-6}$}{
+	\If{ $|\gamma| < 10^{-6} $ {\bf or} $\gamma = stepMAX$ {\bf or} $normPatch  < 10^{-6}$ {\bf or} $normPatch - \lambda < 10^{-6}$}{
 		\textbf{break}
 	}
-	\If{ $\gamma = stepMAX$ }{
-		DOWNDATE $G_S^{-1}$ w.r.t criticalInd\\
-		$\A[\text{criticalInd}] \leftarrow \ 0$\\
-		$\code$[criticalInd] $\leftarrow$ 0\\
+	\If{ $\gamma = stepDownDate$ }{
+		DOWNDATE $G_S^{-1}$ w.r.t downDateInd\\
+		$\A[\text{downDateInd}] \leftarrow \ 0$\\
+		$\code$[downDateInd] $\leftarrow$ 0\\
 		newAtom $\leftarrow$ \textbf{False} \\
-		i $\leftarrow$ i-2 {\color{blue} Marc c'est possible que i devienne n\'egatif ? \c Ca risque de poser probl\`eme non ?}{\color{red} Yohann non car quand i=1 stepMAX n'est pas défini (car il vaut $min^+(\{0\}) = \emptyset$) et pour i=2 ou plus on fait i=i-2 puis on réincrémente à la fin de la boucle soit i=i-1}
+		i $\leftarrow$ i - 1
 	}
 	\Else{
-		newAtom $\leftarrow$ \textbf{True}
+		newAtom $\leftarrow$ \textbf{True} \\
+		i $\leftarrow$ i + 1
 	}
 	
-\caption{LARS algorithm - Mairal Version {\color{red} computeLars} - LOOP }
+\caption{LARS algorithm - Mairal Version {\color{red} computeLars {\color{blue} Marc: Algo correspondant, mais \`a valider.}} - LOOP }
 
 \end{algorithm}
 \newpage
@@ -253,21 +257,21 @@ inverse $G_S^{-1}\in \mathbb{R}^{i \times i}$, criticalInd $\in [1; \dsize]$, cu
 \textbf{Output} : downdated matrices $G_A \in \mathbb{R}^{\dsize \times i-1}, G_S, G_S^{-1} \in \mathbb{R}^{i-1 \times i-1}$\\
 
 $\sigma \ \leftarrow \ \frac{1}{G_S^{-1}(\text{criticalInd}, \text{criticalInd})}$\\
-$u \in \mathbb{R}^{i-1} \leftarrow \ G_S^{-1} [$criticalInd$^{th}$ line] without its criticalInd$^{th}$ coefficient\\
+$u \ \leftarrow \ G_S^{-1} [$criticalInd$^{th}$ line] without its criticalInd$^{th}$ coefficient\\
 \For{j= criticalInd:i-1}{
 	$G_A[j^{th}$ column] $\leftarrow$ $G_A[(j+1)^{th}$ column]\\
 	\For{k= 1:criticalInd-1}{
 		$G_S(j,k)$ $\leftarrow$ $G_S(j+1,k)$\\
 		$G_S^{-1}(j,k)$ $\leftarrow$ $G_S^{-1}(j+1,k)$\\
 	}
-	\For{k= criticalInd:i-1}{
+	\For{k= criticalInd:i}{
 		$G_S(j,k)$ $\leftarrow$ $G_S(j+1,k+1)$\\
 		$G_S^{-1}(j,k)$ $\leftarrow$ $G_S^{-1}(j+1,k+1)$\\
 	}
 }
 $G_s^{-1} \ \leftarrow \ G_s^{-1}-\sigma u u^T$\\
 
-\caption{Downdate invert algorithm {\color{red} downdateGram} {\color{blue} Marc: Algo ne correspondant pas, j'ai cr\'e\'e une nouvelle fonction downdateGramBis dont je pense est une meilleure version. Il faudra la tester et la valider.}}
+\caption{Downdate invert algorithm {\color{red} downdateGram} {\color{blue} Marc: Algo correspondant, mais \`a valider.}}
 
 \end{algorithm}
 

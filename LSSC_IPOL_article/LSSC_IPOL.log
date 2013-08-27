@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.1415926-1.40.10 (TeX Live 2009/Debian) (format=pdflatex 2013.1.18)  23 AUG 2013 15:38
+This is pdfTeX, Version 3.1415926-1.40.10 (TeX Live 2009/Debian) (format=pdflatex 2013.1.18)  27 AUG 2013 11:11
 entering extended mode
  %&-line parsing enabled.
 **LSSC_IPOL.tex
@@ -434,53 +434,44 @@ Underfull \hbox (badness 10000) in paragraph at lines 148--176
  []
 
 [4]
-Missing character: There is no Ã in font cmr12!
-Missing character: There is no © in font cmr12!
-Missing character: There is no Ã in font cmr12!
-Missing character: There is no © in font cmr12!
-Missing character: There is no Ã in font cmr12!
-Missing character: There is no © in font cmr12!
-Missing character: There is no Ã in font cmr12!
-Missing character: There is no   in font cmr12!
-
-Underfull \hbox (badness 10000) detected at line 227
+Underfull \hbox (badness 10000) detected at line 231
 [][]
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 179--228
+Underfull \hbox (badness 10000) in paragraph at lines 179--232
 
  []
 
 [5]
-Underfull \hbox (badness 10000) detected at line 245
+Underfull \hbox (badness 10000) detected at line 249
 [][]
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 230--246
+Underfull \hbox (badness 10000) in paragraph at lines 234--250
 
  []
 
 
-Underfull \hbox (badness 10000) detected at line 272
+Underfull \hbox (badness 10000) detected at line 276
 [][]
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 247--273
+Underfull \hbox (badness 10000) in paragraph at lines 251--277
 
  []
 
 File: ipol_logo.png Graphic file (type png)
 <use ipol_logo.png>
-LaTeX Font Info:    Try loading font information for OMS+cmr on input line 282.
+LaTeX Font Info:    Try loading font information for OMS+cmr on input line 286.
 
  (/usr/share/texmf-texlive/tex/latex/base/omscmr.fd
 File: omscmr.fd 1999/05/25 v2.5h Standard LaTeX font definitions
 )
 LaTeX Font Info:    Font shape `OMS/cmr/m/n' in size <12> not available
-(Font)              Font shape `OMS/cmsy/m/n' tried instead on input line 282.
+(Font)              Font shape `OMS/cmsy/m/n' tried instead on input line 286.
 Missing character: There is no â in font cmr12!
 Missing character: There is no € in font cmr12!
 Missing character: There is no “ in font cmr12!
@@ -495,7 +486,7 @@ Missing character: There is no â in font cmr12!
 Missing character: There is no € in font cmr12!
 Missing character: There is no “ in font cmr12!
 
-Underfull \hbox (badness 1132) in paragraph at lines 317--322
+Underfull \hbox (badness 1132) in paragraph at lines 321--326
 []\OT1/cmr/m/n/12 S. Mal-lat and Z. Zhang \OT1/cmr/m/it/12 Match-ing pur-suit i
 n a time-fre-quency dic-tio-nary\OT1/cmr/m/n/12 . IEEE T. SP,
  []
@@ -504,7 +495,7 @@ pdfTeX warning (ext4): destination with the same identifier (name{cite.LARS}) h
 as been already used, duplicate ignored
 <to be read again> 
                    \relax 
-l.323 \bibitem{LARS}
+l.327 \bibitem{LARS}
                     
 Missing character: There is no â in font cmr12!
 Missing character: There is no € in font cmr12!
@@ -521,10 +512,10 @@ LaTeX Warning: There were multiply-defined labels.
 
  ) 
 Here is how much of TeX's memory you used:
- 6335 strings out of 495061
- 86272 string characters out of 1182621
- 188547 words of memory out of 3000000
- 9365 multiletter control sequences out of 15000+50000
+ 6330 strings out of 495061
+ 86175 string characters out of 1182621
+ 186755 words of memory out of 3000000
+ 9360 multiletter control sequences out of 15000+50000
  21144 words of font info for 78 fonts, out of 3000000 for 9000
  28 hyphenation exceptions out of 8191
  45i,19n,38p,874b,405s stack positions out of 5000i,500n,10000p,200000b,50000s
@@ -550,7 +541,7 @@ b></usr/share/texmf-texlive/fonts/type1/public/amsfonts/cm/cmtt10.pfb></usr/sha
 re/texmf-texlive/fonts/type1/public/amsfonts/cm/cmtt8.pfb></usr/share/texmf-tex
 live/fonts/type1/public/amsfonts/symbols/msam10.pfb></usr/share/texmf-texlive/f
 onts/type1/public/amsfonts/symbols/msbm10.pfb>
-Output written on LSSC_IPOL.pdf (7 pages, 300465 bytes).
+Output written on LSSC_IPOL.pdf (7 pages, 300396 bytes).
 PDF statistics:
  209 PDF objects out of 1000 (max. 8388607)
  33 named destinations out of 1000 (max. 500000)
