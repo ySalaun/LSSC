@@ -64,7 +64,7 @@ struct Parameters{
     nRowPatches     = w/sPatch;
     nColPatches     = h/sPatch;
 
-    reg             = 1e7; // TODO: compute the real value
+    reg             = 0; // TODO: compute the real value
 
     updateIteration = 1; // TODO Mairal used this parameter as default
 

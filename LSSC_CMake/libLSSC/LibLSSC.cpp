@@ -152,8 +152,11 @@ void computeLars(
   //! Code
   o_alpha.assign(k, 0);
 
-  //! active set indexes
+  //! active indexes mapping
   vector<int> A(k, -1);
+  
+  //! inactive indexes mapping
+  vector<unsigned int> iA(k, 1); // TODO: si t'aimes pas le nom, j'ai aussi hésité avec cA pour complémentaire... bref....
 
   //! most correlated element
   vector<float> correlation;
@@ -187,6 +190,7 @@ void computeLars(
     if (newAtom) {
       display("-- new atom", p_params);
       A[i] = currentIndex;
+      iA[currentIndex] = 0;
       Ga.copyCol(G , currentIndex, i);
       Gs.copyRow(Ga, currentIndex, i);
       Gs.symmetrizeUpperPart(i);
@@ -215,17 +219,23 @@ void computeLars(
     //! current maximum of correlation
     C = fabs(correlation[A[0]]);
 
+
     // TODO: debug to test if c(A[0]) is really the max (should be)
     //  and if all the active indexes have the same correlation
-    // TODO: what to do when 2 coefficients have the same initial correlation ??
     if (p_params.debug) {
       cout << "current maximum of correlation is: " << C << endl;
       for(unsigned int j = 0; j < k; j++){
-        if(A[j] == -1 && fabs(correlation[j]) >= C){
-          cout << "ERROR: wrong correlation for non active index, |c(" << j << ")| = " << fabs(correlation[j]) << " >= " << C << endl;
+        // inactive indexes correlation should be lower than the max of correlation
+        if(iA[j] == 1 && fabs(correlation[j]) > C){
+          cout << "ERROR: wrong correlation for non active index, |c(" << j << ")| = " << fabs(correlation[j]) << " > " << C << endl;
         }
-        else if(A[j] >= 0 &&  fabs(correlation[A[j]]) != C){
-          cout << "ERROR: wrong correlation for active index, |c(" << j << ")| = " << fabs(correlation[A[j]]) << " != " << C << endl;
+        // active indexes should reach the max of correlation
+        else if(iA[j] == 0 &&  fabs(correlation[j]) != C){
+          cout << "ERROR: wrong correlation for active index, |c(A[" << j << "])| = " << fabs(correlation[j]) << " != " << C << endl;
+        }
+        // TODO: what to do when 2 coefficients have the same initial correlation ??
+        else if(iA[j] == 1 && fabs(correlation[j]) == C){
+          cout << "BEWARE: the inactive index " << j << " has reached the maximum of correlation" << endl;
         }
       }
     }
@@ -235,13 +245,13 @@ void computeLars(
     Ga.productAx(u, GaU, i + 1);
 
     for (unsigned int j = 0; j < k; j++) {
-      if (A[j] >= 0) {
+      if (iA[j] == 0) {
         continue;
       }
 
       if (1 + GaU[j] > 0) {
         const float value = (C + correlation[j]) / (1 + GaU[j]);
-        if (value < gamma) {
+        if (value < gamma && value > 0) {
           gamma        = value;
           currentIndex = j;
         }
@@ -249,7 +259,7 @@ void computeLars(
 
       if (1 - GaU[j] > 0) {
         const float value = (C - correlation[j]) / (1 - GaU[j]);
-        if (value < gamma) {
+        if (value < gamma && value > 0) {
           gamma        = value;
           currentIndex = j;
         }
@@ -257,7 +267,7 @@ void computeLars(
     }
 
     // TODO: this condition should not appear
-    if(gamma <= 0){
+    if(gamma < 0){
       cout << "ERROR: gamma should be positive without this condition" << endl;
     }
 
@@ -289,7 +299,7 @@ void computeLars(
     const float delta = b * b - a * c;
     float stepMax     = (delta > 0.f ? std::min((b - sqrtf(delta)) / a, C) : p_params.infinity);
     // TODO: this condition should not appear + stepMax has to be const
-    if(stepMax <= 0){
+    if(stepMax < 0){
       cout << "ERROR: stepMax should be positive without this condition" << endl;
       stepMax = C;
     }
@@ -298,6 +308,7 @@ void computeLars(
     // TODO: debug mode
     if (p_params.debug) {
       cout << "gamma: " << gamma << " downdate step: " << stepDownDate << " step max: " << stepMax << endl;
+      cout << "current index: " << currentIndex << " with correlation: " << correlation[currentIndex] << " downdate index: " << downDateIndex << endl;
     }
     gamma = std::min(std::min(gamma, stepDownDate), stepMax);
     // break if the step is too high
@@ -310,10 +321,14 @@ void computeLars(
     }
     for (unsigned int j = 0; j <= i ; j++) {
       o_alpha[A[j]]  += gamma * u  [j];
+    }
+
+    for(unsigned int j = 0; j < k; j++){
       correlation[j] -= gamma * GaU[j];
     }
+
     normPatch += a * gamma * gamma - 2 * b * gamma; // TODO Marc : il faudra peut être passer normPatch, gamma, a, b, et c en double
-    if (fabs(gamma)              < p_params.epsilon ||
+    if (fabs(gamma)              < p_params.epsilon || 
         fabs(gamma - stepMax)    < p_params.epsilon ||
         normPatch                < p_params.epsilon ||
         fabs(normPatch - lambda) < p_params.epsilon) {
