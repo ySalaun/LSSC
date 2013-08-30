@@ -437,10 +437,10 @@ void updateDictionary(
   Matrix &io_D,
   const Matrix &i_A,
   const Matrix &i_B,
-  const Parameters &params){
+  const Parameters &p_params){
 
   //! D = Matrix(D.nRow, D.nCol);
-  for(unsigned int iter = 0; iter < params.updateIteration; iter++) {
+  for(unsigned int iter = 0; iter < p_params.updateIteration; iter++) {
 
     //! u = DA
     Matrix u;
@@ -450,7 +450,7 @@ void updateDictionary(
     u.add(i_B, u, true);
 
     //! loop on the column uj of u
-    for (unsigned int j = 0; j < params.k; j++) {
+    for (unsigned int j = 0; j < p_params.k; j++) {
 
       //! Get the j-th column of u
       vector<float> uj;
@@ -460,31 +460,31 @@ void updateDictionary(
       // TODO: in Mairal's code it is 1e-6 and the epsilon used for LARS is 1e-15....
       // TODO Marc: c'est normal, là on travaille en float, et j'imagine que pour le LARS il travaille en double
       // d'ailleurs dans L'ORMP on travaille aussi en double
-      if (i_A(j, j) > 1e-6) {
+      if (i_A(j, j) > p_params.epsilon) {
         const float ajjInv = 1.f / i_A(j, j);
 
         //! uj = uj/ajj + Dj
-        for (unsigned int i = 0; i < params.m; i++) {
+        for (unsigned int i = 0; i < p_params.m; i++) {
           uj[i] = ajjInv * uj[i] + io_D(i, j);
         }
 
         //! compute ||uj||
         float norm2 = 0.f;
-        for (unsigned int i = 0; i < params.m; i++) {
+        for (unsigned int i = 0; i < p_params.m; i++) {
           norm2 += uj[i] * uj[i];
         }
 
         //! uj = uj / max(||uj||_2, 1)
         if (norm2 > 1.f) {
           const float norm2Inv = 1.f / sqrtf(norm2);
-          for (unsigned int i = 0; i < params.m; i++) {
+          for (unsigned int i = 0; i < p_params.m; i++) {
             uj[i] *= norm2Inv;
           }
         }
       }
       //! else, fill it with 0
       else{
-        for (unsigned int i = 0; i < params.m; i++) {
+        for (unsigned int i = 0; i < p_params.m; i++) {
           uj[i] = 0;
         }
       }

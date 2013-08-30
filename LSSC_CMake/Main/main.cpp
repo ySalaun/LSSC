@@ -80,6 +80,87 @@ int argc
     }
   }
 
+  // TEST PART
+  bool test = false;
+    if(test){
+    bool testFailed = false;
+    float epsilon = 0.005;
+
+    // UPDATE GRAM
+    Matrix G    (params.k, params.k);
+    G.productAtB(dict, dict);
+
+    // Test with random values if G = D^t * D
+    srand((unsigned int)(time(time_t(NULL))));
+
+    for(unsigned int test = 0; test < 25; test++){
+      const unsigned int i = rand() % params.k;
+      const unsigned int j = rand() % params.k;
+
+      float sum = 0.f;
+      for(unsigned k=0; k<params.m; k++){
+        sum += dict(k,i)*dict(k,j);
+      }
+
+      if(fabs(sum - G(i,j)) > epsilon){
+        cout << "TEST ERROR: the productAtB function does not work for Gram matrix" << endl;
+        cout << "G(" << i << "," << j << ") = " << G(i,j) << " != " << sum << endl;
+        testFailed = true;
+      }
+    }
+
+    if(testFailed){
+      return EXIT_FAILURE;
+    }
+
+    // Test of update Gram matrix
+    epsilon = 0.15;
+
+    Matrix invG    (params.k, params.k);
+    Matrix Id1     (params.k, params.k);
+    Matrix Id2     (params.k, params.k);
+
+    for(unsigned int iter = 0; iter<params.k; iter++){
+      updateGram(invG, G, iter);
+
+      Id1.productAB(G, invG, iter+1);
+      Id2.productAB(invG, G, iter+1);
+    
+      for(unsigned int i=0; i<iter+1; i++){
+        for(unsigned int j=0; j<iter+1; j++){
+          const float ref = (i==j)? 1.f : 0.f;
+        
+          if(fabs(ref - Id1(i,j)) > epsilon){
+            cout << "TEST ERROR: the updateGram function does not work" << endl;
+            cout << "at " << iter << "-th iteration, G*invG(" << i << "," << j << ") = " << Id1(i,j) << " != " << ref << endl;
+            testFailed = true;
+          }
+        
+          if(fabs(ref - Id2(i,j)) > epsilon){
+            cout << "TEST ERROR: the updateGram function does not work" << endl;
+            cout << "at " << iter << "-th iteration, invG*G(" << i << "," << j << ") = " << Id2(i,j) << " != " << ref << endl;
+            testFailed = true;
+          }
+
+        }
+      }
+    
+      if(testFailed){
+        cout << "-------------------------------" << endl;
+        display(G, iter+1);
+        cout << "-------------------------------" << endl;
+        display(invG, iter+1);
+        cout << "-------------------------------" << endl;
+        display(Id1, iter+1);
+        cout << "-------------------------------" << endl;
+        display(Id2, iter+1);
+        cout << "-------------------------------" << endl;
+        return EXIT_FAILURE;
+      }
+
+    }
+  }
+
   //! LSSC
   display("----------------------------------------------", params);
   display("PART 1 - LEARNING PART WITH LARS", params);
