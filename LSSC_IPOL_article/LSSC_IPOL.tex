@@ -59,16 +59,41 @@ $^2$ CMLA, ENS Cachan, France (\texttt{marc.lebrun@cmla.ens-cachan.fr})}
 In order to keep coherence with \cite{LSSC}, the notations used are the same.
 A picture of $n$ pixels is seen as a column vector in $\Rn$. The noisy picture is noted $\noi$ and the denoised one $\denoi$. The $i$-th pixel of x is noted $\denoi[i]$ and the patch centered in $\denoi[i]$ and of size $\psize$ is noted $\denoi_i$.
 
+\subsection{ Patches }
+TODO: change name
+
+The first idea behind this method is to decompose the noisy picture into patches of equal size. \\
+TODO: developp patch idea + the fact that there is one patch per pixel\\
+
 \subsection{ Learned Sparse Coding}
 
-The idea behind this method is to assume that the denoised picture is a signal that can be approximated by a sparse linear combinations of elements from a basis set. The basis set is called a dictionary $\dict \in \RR^{\psize \times \dsize}$ and is composed of $\dsize$ elements. The denoised patches are then computed from $\dict$ with:\\
+The second idea is to assume that the denoised patches can be approximated by a sparse linear combinations of elements from a basis set that someway sums up the information belonging to the picture.\\
+The basis set is called a dictionary $\dict \in \RR^{\psize \times \dsize}$ and is composed of $\dsize$ elements. The linear combination is represented by a vector $\code \in \RR^{\dsize}$ called a code.\\
+TODO: formulation is hard....
+The denoising problem is then reformulated into a minimization problem where we look for the optimal dictionary and codes solving the equation below:
 \begin{equation}
-	min_{\code\in \RR^\dsize} ||\code||_\pnorm \ \ s.t. \ \ ||\noi_i  - \dict \code||^2_2 \leqslant \epsilon
+	min_{\code\in \RR^\dsize, \dict \in \RR^{\psize \times \dsize}} \sum_{i=1}^{n} ||\code_i||_\pnorm \text{ s.t. } ||\noi_i  - \dict \code_i||^2_2 \leqslant \epsilon
 	\label{sparseDict}
 \end{equation}
-$\dict \code$ is the estimate of the denoised patch and $||\code||_\pnorm $ is a regularization term that impose sparsity for $\code$.\\ 
-$\pnorm$ is usually 0 or 1. Eq. \ref{sparseDict} becomes NP-hard to solve when $\pnorm=0$ and a greedy algorithm such as Orthogonal Matching Pursuit \cite{OMP} can give an approximation. With $\pnorm=1$, the problem is convex and solved efficiently with the LARS algorithm \cite{LARS}. Experimental observations \cite{l0l1} have shown that the learning part is better with $\pnorm=1$ and the recomposition part with $\pnorm=0$.\\
- $\epsilon$ can be chosen according to the value of the estimated standard deviation of the noise.
+$\dict \code$ is the estimate of the denoised patch which should be similar to the noisy patch and $\epsilon$ can be chosen according to the value of the estimated standard deviation of the noise.
+Once the dictionary and the codes are learned, for each pixel, we have $\psize$ estimations (from the $\psize$ patches that contain it) and their averaging give us the denoised information of this pixel:
+\begin{equation}
+	\forall i \in [1,n], \ \ \denoi[i] = \frac{1}{\psize} \sum_{j=1}^\psize \dict \code_{\sigma(i,j)}
+\end{equation}
+Where $\sigma(i,j)$ is the number of the patch where pixel $\denoi[i]$ is in $j^{th}$ position.\\
+\\
+\eqref{sparseDict} is usualy minimized with $\pnorm = 0$ or $1$. It becomes NP-hard to solve when $\pnorm=0$ but a greedy algorithm such as Orthogonal Matching Pursuit \cite{OMP} can quickly give a good approximation. The problem is convex with $\pnorm=1$ and is efficiently solved with the Least Angle Regression algorithm \cite{LARS}. Experimental observations \cite{l0l1} have shown that the learning part is better with $\pnorm=1$ and the recomposition part with $\pnorm=0$.\\
+
+\subsubsection{Least Angle Regression}
+
+TODO: explain the subject briefly and how to solve it
+\begin{itemize}
+	\item For $\dict \in \RR^{\psize \times \dsize}, \ \ \code^t = \argmin_{\code \in \RR^\dsize} ||\code||_1 \text{ s.t. } ||\noi_t - \dict^{t-1} \code||_2^2 \leq \lambda$
+	\item For $\code \in \RR^\dsize, \ \ \dict^{t}= \argmin_{\dict \in \RR^{\psize \times \dsize}} \frac{1}{t} \sum_{i=1}^t (\frac{1}{2}|\textbf{\noi}_t^i - \dict \code^i||^2_2 + \lambda ||\code^i||_1)$
+\end{itemize}
+
+\subsubsection{Orthogonal Matching Pursuit}
+TODO: MARC :)
 
 \subsection {Simultaneous Sparse Coding}
 
@@ -322,13 +347,6 @@ vision par ordinateur}.
 	IEEE T. SP,
 	41(12):3397–3415,
 	1993.
-
-\bibitem{LARS}
-	B. Efron, T. Hastie, I. Johnstone, and R. Tibshirani
-	\emph{ Least angle regression}.
-	Ann. Statist.,
-	32(2):407–499,
-	2004.
 
 \bibitem{l0l1}
 	M. Elad and M. Aharon
