@@ -1,12 +1,15 @@
 \BOOKMARK [1][-]{section.1}{Overview}{}% 1
-\BOOKMARK [1][-]{section.2}{Theoritical Description}{}% 2
-\BOOKMARK [2][-]{subsection.2.1}{ Notations}{section.2}% 3
-\BOOKMARK [2][-]{subsection.2.2}{ Patches }{section.2}% 4
-\BOOKMARK [2][-]{subsection.2.3}{ Learned Sparse Coding}{section.2}% 5
-\BOOKMARK [3][-]{subsubsection.2.3.1}{Least Angle Regression}{subsection.2.3}% 6
-\BOOKMARK [3][-]{subsubsection.2.3.2}{Orthogonal Matching Pursuit}{subsection.2.3}% 7
-\BOOKMARK [2][-]{subsection.2.4}{Simultaneous Sparse Coding}{section.2}% 8
-\BOOKMARK [1][-]{section.3}{Algorithm Description}{}% 9
-\BOOKMARK [2][-]{subsection.3.1}{ Algorithm Overview }{section.3}% 10
-\BOOKMARK [2][-]{subsection.3.2}{Dictionnary Initialization}{section.3}% 11
-\BOOKMARK [1][-]{section.4}{References}{}% 12
+\BOOKMARK [1][-]{section.2}{Theoretical Description}{}% 2
+\BOOKMARK [2][-]{subsection.2.1}{ Non Local Means }{section.2}% 3
+\BOOKMARK [2][-]{subsection.2.2}{ Learned Sparse Coding}{section.2}% 4
+\BOOKMARK [3][-]{subsubsection.2.2.1}{Learning Dictionary}{subsection.2.2}% 5
+\BOOKMARK [3][-]{subsubsection.2.2.2}{Denoising}{subsection.2.2}% 6
+\BOOKMARK [2][-]{subsection.2.3}{Simultaneous Sparse Coding}{section.2}% 7
+\BOOKMARK [3][-]{subsubsection.2.3.1}{Clustering}{subsection.2.3}% 8
+\BOOKMARK [3][-]{subsubsection.2.3.2}{Simultanous Least Angle Regression}{subsection.2.3}% 9
+\BOOKMARK [3][-]{subsubsection.2.3.3}{Simultanous Orthogonal Matching Pursuit}{subsection.2.3}% 10
+\BOOKMARK [1][-]{section.3}{Notations}{}% 11
+\BOOKMARK [1][-]{section.4}{Algorithm Description}{}% 12
+\BOOKMARK [2][-]{subsection.4.1}{ Algorithm Overview }{section.4}% 13
+\BOOKMARK [2][-]{subsection.4.2}{Dictionnary Initialization}{section.4}% 14
+\BOOKMARK [1][-]{section.5}{References}{}% 15

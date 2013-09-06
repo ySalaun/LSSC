@@ -52,51 +52,73 @@ $^2$ CMLA, ENS Cachan, France (\texttt{marc.lebrun@cmla.ens-cachan.fr})}
 
 
 %-------------------------------------------------------------------------------
-\section{Theoritical Description}
+\section{Theoretical Description}
 
-\subsection{ Notations}
+\subsection{ Non Local Means }
 
-In order to keep coherence with \cite{LSSC}, the notations used are the same.
-A picture of $n$ pixels is seen as a column vector in $\Rn$. The noisy picture is noted $\noi$ and the denoised one $\denoi$. The $i$-th pixel of x is noted $\denoi[i]$ and the patch centered in $\denoi[i]$ and of size $\psize$ is noted $\denoi_i$.
-
-\subsection{ Patches }
-TODO: change name
-
-The first idea behind this method is to decompose the noisy picture into patches of equal size. \\
-TODO: developp patch idea + the fact that there is one patch per pixel\\
+Self similarities inside pictures have been studied for a long time. Efros and Leung used it for texture synthesis \cite{Patch01} and were followed by Buades, Coll and Morel for denoising purpose \cite{Patch02}.\\
+Considering a noisy picture $\noi$ of $n$ pixels seen as a column vector in $\Rn$, $\noi$ is divided into $n$ overlapping patches of equal size $\psize$. The $i$-th pixel of $\noi$ is noted $\noi[i]$ and the patch centered in $\noi[i]$ and of size $\psize$ is noted $\noi_i$. Then, when two different patches $\noi_i$ and $\noi_j$ have similar values, their denoised version should also be similar. Moreover, assuming that the noise follows a Gaussian distribution, averaging similar patches should destroy the noise information and thus denoise the patch. Thus the denoised pixel $\denoi[i]$ is obtained with a linear combination of the others pixel in the noisy picture $\noi$ weighted by the similarity of their corresponding patches:
+\begin{equation}
+	\denoi[i] = \frac{1}{N} \sum_{j=1}^n G(\noi_i - \noi_j) \noi[j]
+\end{equation}
+where $N$ is the normalization factor and $G$ a Gaussian that weights the patch similarities.\\ 
+Following this idea, Mairal et al. \cite{LSSC} divided the pictures into $n$ overlapping patches in order to denoise through self-similarity methods.
 
 \subsection{ Learned Sparse Coding}
 
-The second idea is to assume that the denoised patches can be approximated by a sparse linear combinations of elements from a basis set that someway sums up the information belonging to the picture.\\
-The basis set is called a dictionary $\dict \in \RR^{\psize \times \dsize}$ and is composed of $\dsize$ elements. The linear combination is represented by a vector $\code \in \RR^{\dsize}$ called a code.\\
-TODO: formulation is hard....
-The denoising problem is then reformulated into a minimization problem where we look for the optimal dictionary and codes solving the equation below:
+The second idea is to assume that the denoised patches can be approximated by a sparse linear combinations of elements from a basis set.\\
+This basis set, that contains the denoised picture information, is called a dictionary $\dict \in \RR^{\psize \times \dsize}$. The linear combination is represented by a vector $\code \in \RR^{\dsize}$ called a code.
+The aim is to have a dictionary that is not redundant (independant columns), not too large ($\dsize \ll n$) but that contains the whole picture information.\\
+The denoising problem consists then of finding one dictionary for the picture and one sparse code for each patch. Thus it can be reformulated into a minimization problem where we look for the optimal dictionary and codes that are the most similar to each noisy patches:
 \begin{equation}
-	min_{\code\in \RR^\dsize, \dict \in \RR^{\psize \times \dsize}} \sum_{i=1}^{n} ||\code_i||_\pnorm \text{ s.t. } ||\noi_i  - \dict \code_i||^2_2 \leqslant \epsilon
+	\forall i \in [1;n], \ \ \min_{\code\in \RR^\dsize, \dict \in \RR^{\psize \times \dsize}} \sum_{i=1}^{n} ||\code_i||_\pnorm \text{ s.t. } ||\noi_i  - \dict \code_i||^2_2 \leqslant \epsilon
 	\label{sparseDict}
 \end{equation}
-$\dict \code$ is the estimate of the denoised patch which should be similar to the noisy patch and $\epsilon$ can be chosen according to the value of the estimated standard deviation of the noise.
-Once the dictionary and the codes are learned, for each pixel, we have $\psize$ estimations (from the $\psize$ patches that contain it) and their averaging give us the denoised information of this pixel:
+$\dict \code_i$ is the estimate of the $i^{th}$ denoised patch which should be similar to the noisy patch and $\epsilon$ can be chosen according to the value of the estimated standard deviation of the noise.\\
+Once the dictionary and the codes are learned, for each pixel, we have $\psize$ estimations (from the $\psize$ overlapping patches that contain it) and their averaging give us the denoised information of this pixel:
 \begin{equation}
 	\forall i \in [1,n], \ \ \denoi[i] = \frac{1}{\psize} \sum_{j=1}^\psize \dict \code_{\sigma(i,j)}
 \end{equation}
-Where $\sigma(i,j)$ is the number of the patch where pixel $\denoi[i]$ is in $j^{th}$ position.\\
+Where $\sigma(i,j)$ is the number of the patch that put pixel $\denoi[i]$ in $j^{th}$ position.\\
 \\
-\eqref{sparseDict} is usualy minimized with $\pnorm = 0$ or $1$. It becomes NP-hard to solve when $\pnorm=0$ but a greedy algorithm such as Orthogonal Matching Pursuit \cite{OMP} can quickly give a good approximation. The problem is convex with $\pnorm=1$ and is efficiently solved with the Least Angle Regression algorithm \cite{LARS}. Experimental observations \cite{l0l1} have shown that the learning part is better with $\pnorm=1$ and the recomposition part with $\pnorm=0$.\\
+Equation \eqref{sparseDict} is usualy minimized with $\pnorm = 0$ or $1$. It becomes NP-hard to solve when $\pnorm=0$ but a greedy algorithm such as Orthogonal Matching Pursuit \cite{OMP} can quickly give a good approximation. The problem is convex with $\pnorm=1$ and is efficiently solved with the Least Angle Regression algorithm \cite{LARS}. Experimental observations \cite{l0l1} have shown that the learning part is better with $\pnorm=1$ and the recomposition part with $\pnorm=0$.\\
 
-\subsubsection{Least Angle Regression}
+\subsubsection{Learning Dictionary}
 
-TODO: explain the subject briefly and how to solve it
+In this part, we consider that $\pnorm = 1$ in equation \eqref{sparseDict}. The problems becomes convex and the equation is only solved in order to find the optimal dictionary $\dict$ that could represents the denoised information of picture $\noi$.\\
+The method consists in updating the dictionary iteratively with only a small distribution of $T$ patches. However they are chosen so that they are independently and identically distributed in the picture.\\
+First, the initial dictionnary is learned offline on the 10 000 images of the PASCAL VOC'07 database using the  online dictionary learning procedure of \cite{onlineLearning}. This procedure is then used on the noisy picture $\noi$ in order to improve the dictionary efficiency.\\
+For each patch $\noi_i$, the corresponding code is computed with the current dictionary kept constant and then the dictionary is updated with all the previous codes.\\
+Thus, we minimize iteratively the two equations below:
 \begin{itemize}
-	\item For $\dict \in \RR^{\psize \times \dsize}, \ \ \code^t = \argmin_{\code \in \RR^\dsize} ||\code||_1 \text{ s.t. } ||\noi_t - \dict^{t-1} \code||_2^2 \leq \lambda$
-	\item For $\code \in \RR^\dsize, \ \ \dict^{t}= \argmin_{\dict \in \RR^{\psize \times \dsize}} \frac{1}{t} \sum_{i=1}^t (\frac{1}{2}|\textbf{\noi}_t^i - \dict \code^i||^2_2 + \lambda ||\code^i||_1)$
+	\item For $\dict \in \RR^{\psize \times \dsize} \text{ and patch $t$, } \code^t = \argmin_{\code \in \RR^\dsize} ||\code||_1 \text{ s.t. } ||\noi_t - \dict^{t-1} \code||_2^2 \leq \lambda$
+	\item For patches 1 to $t$ and their codes $\code \in \RR^\dsize, \ \ \dict^{t}= \argmin_{\dict \in \RR^{\psize \times \dsize}} \frac{1}{t} \sum_{i=1}^t (\frac{1}{2}|\textbf{\noi}_t^i - \dict \code^i||^2_2 + \lambda ||\code^i||_1)$
 \end{itemize}
+The second equation can be re-written:
+\begin{equation}
+	\dict^{t}= \argmin_{\dict \in \RR^{\psize \times \dsize}} \frac{1}{t} (\frac{1}{2} \text{Tr}(\dict^T \dict B^t)- \text{Tr}(D^T C^t )
+	\label{BlockDescent}
+\end{equation}
+where $B$ and $C$ are incrementaly updated with:
+\begin{itemize}
+	\item $B^t \leftarrow B^{t-1} + \code^t \code^{tT}$
+	\item $C^t \leftarrow C^{t-1} + \noi^t \code^{tT}$
+\end{itemize}
+The dictionary update is thus computed through a block-coordinate descent with warmrestarts \cite{BlockDescent}. This is an iterative method that updates the columns of the dictionary needing only matrices $B$ and $C$ and no matrix inversion in opposite to other approaches as Newton method. Moreover, since the convex optimization problem (Equation \eqref{BlockDescent}) admits separable constraints in the updated blocks (columns), convergence to a global optimum is guaranteed. However Mairal et al empirically found that a single iteration of the dictionary update was sufficient to achieve convergence.
 
-\subsubsection{Orthogonal Matching Pursuit}
+\subsubsection{Denoising}
 TODO: MARC :)
 
-\subsection {Simultaneous Sparse Coding}
+\subsection{Simultaneous Sparse Coding}
 
+\subsubsection{Clustering}
+
+\subsubsection{Simultanous Least Angle Regression}
+
+\subsubsection{Simultanous Orthogonal Matching Pursuit}
+
+%-------------------------------------------------------------------------------
+\section{Notations}
 
 %-------------------------------------------------------------------------------
 \section{Algorithm Description}
@@ -109,9 +131,6 @@ Then, iteratively for each clusters, the dictionary is updated using simultaneou
 
 \subsection{Dictionnary Initialization}
 
-The initial dictionnary is first learned offline on the 10 000 images of the PASCAL VOC'07 database using the  online dictionary learning procedure of \cite{onlineLearning}. This procedure is then used on the noisy picture in order to improve the dictionary efficiency.\\
-In fact, only a fixed number $T$ of patches in the picture are used to update the dictionary. However they are chosen so that they are independently and identically distributed in the picture.\\
-The algorithm corresponds then to the minimization of eq.\ref{sparseDict} on the $T$ patches with the $l_1$ norm using the LARS \cite{LARS} algorithm.\\
 
 \begin{algorithm}[H]
 
@@ -315,6 +334,18 @@ need to credit this image, here is used as an example.)
 
 \begin{thebibliography}{9}
 
+\bibitem{Patch01}
+	A. Efros, and T. Leung
+	\emph{Texture synthesis by non-parametric sampling}.
+	ICCV,
+	1999.
+
+\bibitem{Patch02}
+	A. Buades, B. Coll, and J. Morel
+	\emph{A non-local algorithm for image denoising}.
+	CVPR,
+	2005.
+
 \bibitem{LARS}
 	B. Efron, T. Hastie, I. Johnstone, and R. Tibshirani
 	\emph{Least angle regression}. 
@@ -354,6 +385,12 @@ vision par ordinateur}.
 	IEEE T.
 	IP, 54(12):3736–3745,
 	2006.
+	
+\bibitem{BlockDescent}	
+	D. P. Bertsekas
+	\emph{Nonlinear programming}.
+	Athena Scientific Belmont,
+	1999.
 
 \end{thebibliography}
 
