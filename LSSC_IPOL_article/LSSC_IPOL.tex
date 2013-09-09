@@ -16,6 +16,8 @@
 \newcommand{\dict}{\textbf{D}}  
 \newcommand{\code}{\bm{\alpha}}  
 \newcommand{\pnorm}{p}
+\newcommand{\qnorm}{q}
+\newcommand{\nclust}{n_C}
 % commands for noisy/denoised picture
 \newcommand{\Denoi}{\textbf{X}}
 \newcommand{\denoi}{\textbf{x}}
@@ -71,8 +73,11 @@ This basis set, that contains the denoised picture information, is called a dict
 The aim is to have a dictionary that is not redundant (independant columns), not too large ($\dsize \ll n$) but that contains the whole picture information.\\
 The denoising problem consists then of finding one dictionary for the picture and one sparse code for each patch. Thus it can be reformulated into a minimization problem where we look for the optimal dictionary and codes that are the most similar to each noisy patches:
 \begin{equation}
-	\forall i \in [1;n], \ \ \min_{\code\in \RR^\dsize, \dict \in \RR^{\psize \times \dsize}} \sum_{i=1}^{n} ||\code_i||_\pnorm \text{ s.t. } ||\noi_i  - \dict \code_i||^2_2 \leqslant \epsilon
+\begin{split}
+	& \min_{\dict, \code_i} \sum_{i=1}^{n} ||\code_i||_\pnorm \text{ s.t. } \forall i \in [1;n],\ \ ||\noi_i  - \dict \code_i||^2_2 \leqslant \epsilon \\
+	& \text{with } \dict \in \RR^{\psize \times \dsize} \text{ and } \forall i \in [1;n], \ \code_i \in \RR^\dsize
 	\label{sparseDict}
+\end{split}
 \end{equation}
 $\dict \code_i$ is the estimate of the $i^{th}$ denoised patch which should be similar to the noisy patch and $\epsilon$ can be chosen according to the value of the estimated standard deviation of the noise.\\
 Once the dictionary and the codes are learned, for each pixel, we have $\psize$ estimations (from the $\psize$ overlapping patches that contain it) and their averaging give us the denoised information of this pixel:
@@ -81,7 +86,7 @@ Once the dictionary and the codes are learned, for each pixel, we have $\psize$ 
 \end{equation}
 Where $\sigma(i,j)$ is the number of the patch that put pixel $\denoi[i]$ in $j^{th}$ position.\\
 \\
-Equation \eqref{sparseDict} is usualy minimized with $\pnorm = 0$ or $1$. It becomes NP-hard to solve when $\pnorm=0$ but a greedy algorithm such as Orthogonal Matching Pursuit \cite{OMP} can quickly give a good approximation. The problem is convex with $\pnorm=1$ and is efficiently solved with the Least Angle Regression algorithm \cite{LARS}. Experimental observations \cite{l0l1} have shown that the learning part is better with $\pnorm=1$ and the recomposition part with $\pnorm=0$.\\
+Equation \eqref{sparseDict} is usualy minimized with $\pnorm = 0$ or $1$. It becomes NP-hard to solve when $\pnorm=0$ but a greedy algorithm such as Orthogonal Matching Pursuit (ORMP) \cite{OMP} can quickly give a good approximation. The problem is convex with $\pnorm=1$ and is efficiently solved with the Least Angle Regression (LARS) algorithm \cite{LARS}. Experimental observations \cite{l0l1} have shown that the learning part is better with $\pnorm=1$ and the recomposition part with $\pnorm=0$.\\
 
 \subsubsection{Learning Dictionary}
 
@@ -94,6 +99,9 @@ Thus, we minimize iteratively the two equations below:
 	\item For $\dict \in \RR^{\psize \times \dsize} \text{ and patch $t$, } \code^t = \argmin_{\code \in \RR^\dsize} ||\code||_1 \text{ s.t. } ||\noi_t - \dict^{t-1} \code||_2^2 \leq \lambda$
 	\item For patches 1 to $t$ and their codes $\code \in \RR^\dsize, \ \ \dict^{t}= \argmin_{\dict \in \RR^{\psize \times \dsize}} \frac{1}{t} \sum_{i=1}^t (\frac{1}{2}|\textbf{\noi}_t^i - \dict \code^i||^2_2 + \lambda ||\code^i||_1)$
 \end{itemize}
+The first equation is solved with the LARS algorithm.\\
+TODO
+
 The second equation can be re-written:
 \begin{equation}
 	\dict^{t}= \argmin_{\dict \in \RR^{\psize \times \dsize}} \frac{1}{t} (\frac{1}{2} \text{Tr}(\dict^T \dict B^t)- \text{Tr}(D^T C^t )
@@ -111,11 +119,26 @@ TODO: MARC :)
 
 \subsection{Simultaneous Sparse Coding}
 
-\subsubsection{Clustering}
+The idea that developped Mairal et al. in this section is that similar patches should have similar decomposition upon the dictionary. Thus, they created a partition of the picture into $\nclust$ groups of similar patches called clusters. They then added a simultaneous condition which impose similar decompositions for patches of the same cluster and equation \eqref{sparseDict} became:
+\begin{equation}
+\begin{split}
+	&\min_{\dict, \code_{i,j}} \sum_{j=1}^{\nclust} \sum_{i=1}^{n_j} \frac{||\code_{i,j}||^\pnorm_\qnorm}{n_j} \text{ s.t. } \forall j \in [1; \nclust],\ \ \sum_{i=1}^{n_j}||\noi_i  - \dict \code_{i,j}||^2_2 \leqslant \epsilon_j \\
+	& \text{with } \dict \in \RR^{\psize \times \dsize} \text{ and } \forall i \in [1;n_j], \forall j \in [1; \nclust], \ \code_{i,j} \in \RR^\dsize
+	\label{simultSparseDict}
+\end{split}
+\end{equation}
+where $n_j$ is the size of the $j^{th}$ cluster and $\epsilon_j$ is chosen with respect to the noise inside it.\\
+\\
+Equation \eqref{simultSparseDict} is usualy minimized with $(\pnorm, \qnorm) = (0, \infty)$ or $(1, 2)$. As for Equation \eqref{sparseDict}, it becomes NP-hard to solve when $(\pnorm, \qnorm)=(0, \infty)$ and Simultaneous Orthogonal Matching Pursuit (SORMP) \cite{SOMP} gives a good approximation. The problem is convex when $(\pnorm, \qnorm)=(1, 2)$ and a slight modification of the LARS algorithm gives a solution. Once again, the convex problem is used for the learning part while the SORMP is used for the denoising part.\\
+As for the non-simultaneous sparse coding, the denoised pixel is approximated by an average of the denoised versions of all the overlapping patches.
 
-\subsubsection{Simultanous Least Angle Regression}
+\subsubsection{Simultanous Learning}
 
-\subsubsection{Simultanous Orthogonal Matching Pursuit}
+Not seen in details. The algorithm used is the Simultaneous LARS which is similar to LARS but a "simultaneous" condition that uses cluster information.
+
+\subsubsection{Simultanous Denoising}
+
+Not seen in details. The algorithm used is the Simultaneous ORMP which is similar to ORMP but a "simultaneous" condition that uses cluster information.
 
 %-------------------------------------------------------------------------------
 \section{Notations}
@@ -162,23 +185,21 @@ Then, iteratively for each clusters, the dictionary is updated using simultaneou
 \SetLine
 \textbf{Input} :input dictionary \dict = [\textbf{d}$^1$, ... , \textbf{d}$^\dsize$] $\in \mathbb{R}^{\psize \times \dsize}$, \\ \textbf{A} = [\textbf{a}$^1$, ... , \textbf{a}$^\dsize$] $ \in \mathbb{R}^{\dsize \times \dsize}$,  \textbf{B} = [\textbf{b}$^1$, ... , \textbf{b}$^\dsize$]$ \in \mathbb{R}^{\psize \times \dsize}$\\
 \textbf{Output} : updated dictionary \textbf{\dict} \\
-\Repeat{convergence {\color{red} Marc: apparemment, dans le code on a une boucle sur params.updateIteration = 1. Est-ce qu'il ne vaudrait mieux pas calculer l'argmin \`a chaque boucle et s'arr\^eter lorsque c'est plus petit qu'une certaine valeur ?}{\color{green} Yohann: je n'ai pas trop compris ce que tu voulais faire. Ca c'est le pseudo code présenté par Mairal, qui est donc une sorte de descente de gradient. Ce genre d'algo converge en théorie à l'infini, en pratique on prend un grand nombre d'itération. Cependant, dans ce cas on fait une minimisation alternée d'un problème plus global (selon D puis selon alpha et on itère). Du coup, et surement à cause de contraintes de temps, Mairal a fixé le nombre d'itération à 1 mais permet de le changer en paramètre dans son algo. Du coup j'ai voulu faire pareil que Mairal. }}{
-	\For{ j = 1..\dsize}{
-		update the $j^{th}$ column:\\
-	\If{ \textbf{A}(j,j) = 0 }{
+\For{ j = 1..\dsize}{
+	update the $j^{th}$ column:\\
+\If{ \textbf{A}(j,j) = 0 }{
 \[
 		\textbf{d}^{j}\leftarrow 0
 \]
-	}
-	\Else{
+}
+\Else{
 \[
 		\textbf{u}^{j}\leftarrow \frac{1}{\textbf{A}(j,j)} (\textbf{b}^{j} -\dict\textbf{a}^{j}) + \textbf{d}^{j}
 \]
 \[
 		\textbf{d}^{j}\leftarrow \frac{1}{\max(||\textbf{u}^{j}||_2, 1)}\textbf{u}^{j}
 \]
-	}
-	}
+}
 }
 
 \Return \dict
@@ -391,6 +412,13 @@ vision par ordinateur}.
 	\emph{Nonlinear programming}.
 	Athena Scientific Belmont,
 	1999.
+	
+\bibitem{SOMP}
+	J. A. Tropp
+	\emph{Algorithms for simultaneous sparse approximation}.
+	Sig. Proc.,
+	86:572–602,
+	2006.	
 
 \end{thebibliography}
 
