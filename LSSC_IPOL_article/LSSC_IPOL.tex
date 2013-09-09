@@ -9,6 +9,7 @@
 \usepackage{algorithm2e}
 \usepackage{bm}
 \usepackage{verbatim}
+\usepackage[hang,small]{caption}
 
 % commands for dictionary/patches...
 \newcommand{\psize}{m}   
@@ -141,26 +142,54 @@ Not seen in details. The algorithm used is the Simultaneous LARS which is simila
 Not seen in details. The algorithm used is the Simultaneous ORMP which is similar to ORMP but a "simultaneous" condition that uses cluster information.
 
 %-------------------------------------------------------------------------------
+\newpage
+
 \section{Notations}
 
 %-------------------------------------------------------------------------------
+\newpage
+
 \section{Algorithm Description}
 
 \subsection{ Algorithm Overview }
 
-The first part consists in initializing a dictionary that will denoise roughly the picture.\\
-Once the picture is denoised a first time, a clustering is made in order to regroup similar patches for further treatment.\\
-Then, iteratively for each clusters, the dictionary is updated using simultaneous sparse coding and the cluster is denoised.
+The previous parts are used in order to perform a global denoising. First, a rough denoising is realized upon the whole picture. This way, a coherent dictionary is learned and similar patches can be easily regrouped. Then, the clustering is performed and the previous process is applied once more on each cluster indepently. However, the similarity between patches is also used, adding a simultaneous condition upon patches. The whole algorithm is summed up in Algorithm \ref{Global}.\\
 
-\subsection{Dictionnary Initialization}
+\begin{algorithm}[H]
+\textbf{Input} : noisy picture $\noi$, pre-learned dictionary $\dict$ \\
+\textbf{Output} : denoised picture $\denoi$\\
+\SetLine
+	Update $\dict$ with LARS\\
+	Denoise $\noi$ with ORMP\\
+	Regroup patches into clusters\\
+	\For{ t = 1..N}{
+		Update $\dict$ with Simultaneous LARS for each cluster independently\\
+		Denoise each cluster with SORMP\\
+	}
 
+\caption{Online Dictionary Learning}
+\label{Global}
+\end{algorithm}
+\\
+Note that in practice $N=1$ works well and the patchwise update for the dictionary is very costy and do not seem to increase the quality of the denoised picture.\\
+The pseudo code is presented below with the same subsections as the theoretical part above. We implemented it in C++ and the link between the pseudo code and the C++ functions is precised each time.
+
+\subsection{Learned Sparse Coding}
+
+\subsubsection{Learning Dictionary}
+
+\begin{itemize}
+	\item Main function of the dictionary learning part - \textit{trainL1}: 
+\end{itemize}
+It computes a distribution of iid patches with the function \textit{getRandList}. It then iteratively minimizes equation \eqref{sparseDict} with either the dictionary $\dict$ fixed or the codes $\code$ fixed. When the dictionary is fixed, the LARS is used in C++ function \textit{computeLars}. When the codes are fixed, the C++ function called is \textit{updateDictionary}.\\
 
 \begin{algorithm}[H]
 
 \SetLine
-\textbf{Input} : number of iterations \textbf{T},  i.i.d. sampling of \textbf{T} patches of the noisy picture \textbf{Y}$_T$, initial dictionary \dict$^0$ $\in \RR^{\psize \times \dsize}$, regularization parameter $\lambda$ \\
+\textbf{Input} : initial dictionary \dict$^0$ $\in \RR^{\psize \times \dsize}$, number of iterations \textbf{T}, regularization parameter $\lambda$ \\
 \textbf{Output} : learned dictionary \dict \\
 \textbf{Initialization} : \textbf{A}$^0 \in \RR^{\dsize \times \dsize} \leftarrow 0$,  \textbf{B}$^0 \in \RR^{\psize \times \dsize} \leftarrow 0$ \\
+	Compute i.i.d. sampling of \textbf{T} patches of the noisy picture \textbf{Y}$_T$
 	\For{ t = 1..\textbf{T}}{
 		\textbf{\noi}$_t$ = \textbf{\Noi}$_T$[t]\\
 		Sparse coding: compute with LARS algorithm:
@@ -176,14 +205,20 @@ Then, iteratively for each clusters, the dictionary is updated using simultaneou
 }
 \Return \dict$^{T}$
 
-\caption{Online Dictionary Learning}
+\caption{\textit{trainL1}}
 
 \end{algorithm}
+
+\begin{itemize}
+	\item Dictionary update - \textit{updateDictionary}: 
+\end{itemize}
+Block-coordinate descent with warmrestarts algorithm that minimizes Equation \eqref{BlockDescent}.\\
+TODO: se renseigner sur la  methode ? pk si A(j,j) = 0 ... \\
 
 \begin{algorithm}[H]
 
 \SetLine
-\textbf{Input} :input dictionary \dict = [\textbf{d}$^1$, ... , \textbf{d}$^\dsize$] $\in \mathbb{R}^{\psize \times \dsize}$, \\ \textbf{A} = [\textbf{a}$^1$, ... , \textbf{a}$^\dsize$] $ \in \mathbb{R}^{\dsize \times \dsize}$,  \textbf{B} = [\textbf{b}$^1$, ... , \textbf{b}$^\dsize$]$ \in \mathbb{R}^{\psize \times \dsize}$\\
+\textbf{Input} : input dictionary \dict = [\textbf{d}$^1$, ... , \textbf{d}$^\dsize$] $\in \mathbb{R}^{\psize \times \dsize}$, \\ \textbf{A} = [\textbf{a}$^1$, ... , \textbf{a}$^\dsize$] $ \in \mathbb{R}^{\dsize \times \dsize}$,  \textbf{B} = [\textbf{b}$^1$, ... , \textbf{b}$^\dsize$]$ \in \mathbb{R}^{\psize \times \dsize}$\\
 \textbf{Output} : updated dictionary \textbf{\dict} \\
 \For{ j = 1..\dsize}{
 	update the $j^{th}$ column:\\
@@ -204,11 +239,18 @@ Then, iteratively for each clusters, the dictionary is updated using simultaneou
 
 \Return \dict
 
-\caption{Dictionary Update {\color{red} updateDictionary} {\color{blue} Marc: Algo valid\'e}}
+\caption{\textit{updateDictionary}}
 
 \end{algorithm}
 
 \newpage
+
+\begin{itemize}
+	\item Least Angle Regression (LARS) - \textit{computeLars}: 
+\end{itemize}
+The LARS algorithm is very long and has been split up for better readibility. \\
+TODO: préciser la version + pk inversion bizarre des matrices
+\\
 
 \begin{algorithm}[H]
 
@@ -351,8 +393,6 @@ $G_s^{-1} \ \leftarrow \ G_s^{-1}-\sigma u u^T$\\
 need to credit this image, here is used as an example.)
 
 %-------------------------------------------------------------------------------
-\section{References}
-
 \begin{thebibliography}{9}
 
 \bibitem{Patch01}
@@ -388,7 +428,7 @@ need to credit this image, here is used as an example.)
 
 \bibitem{thesis}
 	J. Mairal
-	\emph{ Représentations parcimonieuses en apprentissage statistique, traitement d’image et
+	\emph{ Representations parcimonieuses en apprentissage statistique, traitement d’image et
 vision par ordinateur}.
 	PhD thesis,
 	2010.

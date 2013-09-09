@@ -10,5 +10,5 @@
 \BOOKMARK [1][-]{section.3}{Notations}{}% 10
 \BOOKMARK [1][-]{section.4}{Algorithm Description}{}% 11
 \BOOKMARK [2][-]{subsection.4.1}{ Algorithm Overview }{section.4}% 12
-\BOOKMARK [2][-]{subsection.4.2}{Dictionnary Initialization}{section.4}% 13
-\BOOKMARK [1][-]{section.5}{References}{}% 14
+\BOOKMARK [2][-]{subsection.4.2}{Learned Sparse Coding}{section.4}% 13
+\BOOKMARK [3][-]{subsubsection.4.2.1}{Learning Dictionary}{subsection.4.2}% 14
