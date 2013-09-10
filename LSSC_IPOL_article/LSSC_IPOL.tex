@@ -221,7 +221,7 @@ TODO: se renseigner sur la  methode ? pk si A(j,j) = 0 ... \\
 \textbf{Input} : input dictionary \dict = [\textbf{d}$^1$, ... , \textbf{d}$^\dsize$] $\in \mathbb{R}^{\psize \times \dsize}$, \\ \textbf{A} = [\textbf{a}$^1$, ... , \textbf{a}$^\dsize$] $ \in \mathbb{R}^{\dsize \times \dsize}$,  \textbf{B} = [\textbf{b}$^1$, ... , \textbf{b}$^\dsize$]$ \in \mathbb{R}^{\psize \times \dsize}$\\
 \textbf{Output} : updated dictionary \textbf{\dict} \\
 \For{ j = 1..\dsize}{
-	update the $j^{th}$ column:\\
+	Update the $j^{th}$ column:\\
 \If{ \textbf{A}(j,j) = 0 }{
 \[
 		\textbf{d}^{j}\leftarrow 0
@@ -249,92 +249,149 @@ TODO: se renseigner sur la  methode ? pk si A(j,j) = 0 ... \\
 	\item Least Angle Regression (LARS) - \textit{computeLars}: 
 \end{itemize}
 The LARS algorithm is very long and has been split up for better readibility. \\
+($\min^+$ is the minimum between strictly positive values only)\\
 TODO: préciser la version + pk inversion bizarre des matrices
 \\
 
 \begin{algorithm}[H]
 
 \SetLine
-{\color{red} Marc: TODO : choisir entre les indices ou les crochets pour les indices\\}
 \textbf{Input} : Input dictionary $\dict \in \mathbb{R}^{\psize \times \dsize}$, noisy patch \textbf{\noi} $\in \mathbb{R}^{\psize}$, constraint $\lambda \in \mathbb{R}$\\
 \textbf{Output} : code $\code \in \mathbb{R}^{\dsize}$\\
----INITIALIZATION---\\
+\vspace{1mm}
+
+\textbf{Initialization:}\\
+Initialize variables\\
+\vspace{2mm}
+
+\For{ i = 1..$\dsize$}{
+	\vspace{1mm}
+
+	\textbf{New atom:}\\
+	Add a new atom in $\code$ if there is no downdating\\
+	\vspace{2mm}
+
+	\textbf{Compute steps:}\\
+	Compute the initial step ($\gamma$)\\
+	Compute the critical step that impose downdating (stepDownDate)\\
+	Compute the critical step that breaks the loop and ends the algorithm (stepMax)\\
+	\vspace{2mm}
+
+	\textbf{Update code:}\\
+	Compute the new code $\code$ and downdate or break if needed
+	\vspace{2mm}
+
+}
+\Return $\code$
+\vspace{2mm}
+
+\caption{\textit{computeLars} - Main}
+
+\end{algorithm}
+
+\begin{algorithm}[H]
+
+Compute Gram matrix:\\
+\vspace{0.5mm}
 G $\in \mathbb{R}^{\dsize \times \dsize} \leftarrow \dict^T\dict$\\
+\vspace{2mm}
+
+Initialize patch norm and check if there is no trivial solution:\\
+\vspace{0.5mm}
 normPatch $\in \mathbb{R}^+ \leftarrow$ $||\noi||^2_2$\\
-$\code \in \mathbb{R}^{\dsize} \leftarrow$ \textbf{0}\\
-$\A \in [0;\dsize]^{\dsize} \leftarrow$ \textbf{0}\\
-\textit{Most correlated element}\\
-$\clars \in \RR^{\dsize} \leftarrow \dict^T \noi$\\
-$C \in \RR^+ \leftarrow \max_{j=1..\dsize}(|\clars_j|)$ \\
-currentInd $\leftarrow j \text{ s.t. } \clars_j = C$\\
-newAtom $\leftarrow$ \textbf{True}\\
 \If{ normPatch $< \lambda$ }{
 	\textbf{return 0}
 }
-\For{ i = 1..$\dsize$}{
-LOOP, see below
-}
-\Return $\code$
-	
-\caption{LARS algorithm - Mairal Version {\color{red} computeLars}}
+\vspace{2mm}
 
+Initialize code and active index:\\
+\vspace{0.5mm}
+$\code \in \mathbb{R}^{\dsize} \leftarrow$ \textbf{0}\\
+$\A \in [0;\dsize]^{\dsize} \leftarrow$ \textbf{0}\\
+\vspace{2mm}
+
+Compute most correlated element:\\
+\vspace{0.5mm}
+$\clars \in \RR^{\dsize} \leftarrow \dict^T \noi$\\
+$C \in \RR^+ \leftarrow \max_{j=1..\dsize}(|\clars[j]|)$ \\
+currentInd $\leftarrow j \text{ s.t. } \clars[j] = C$\\
+\vspace{2mm}
+
+Add a new atom at first iteration:\\
+\vspace{0.5mm}
+newAtom $\leftarrow$ \textbf{True}\\
+\vspace{2mm}
+
+\caption{\textit{computeLars} - Initialization}
 \end{algorithm}
 
 \newpage
 
 \begin{algorithm}[H]
+\SetLine
+
+\If{ newAtom }{
+	$\A[i] \leftarrow $ currentInd\\
+	$G_A \in \mathbb{R}^{\dsize \times i}, G_S \in \mathbb{R}^{i \times i}$\\
+	$G_A$[$i^{th}$ column] $\leftarrow$ $G$[currentInd$^{th}$ column]\\
+	$G_S$[$i^{th}$ line] $\leftarrow$ $G_A$[currentInd$^{th}$ line]\\
+	symmetrize $G_S$: copy the lower part of $G_S$ into its upper part\\
+	UPDATE $G_S^{-1}$
+}
+
+\caption{\textit{computeLars} - New atom}
+\end{algorithm}
+
+\begin{algorithm}[H]
+\textbf{Initial step:}\\
+u $\in \mathbb{R}^i \leftarrow$ $G_S^{-1} (\text{sgn}(\clars[\A[j]]))_{j\in [1;i]}$\\
+$C \leftarrow |\clars[\A[1]]| = \max_{j=1..\dsize}(|\clars[j]|)$\\
+$\gamma \in \mathbb{R}^+_* \leftarrow$ $\min^+\left(\frac{C + \clars[j]}{1 + (G_Au)[j]}, \frac{C - \clars[j]}{1 - (G_Au)[j]}\right)_{j \text{ s.t. } \A[j] = 0}$\\
+currentInd $=j$ s.t. $\gamma = \frac{C \pm \clars[j]}{1 \pm (G_Au)[j]}$\\
+
+\textbf{Downdate step:}\\
+ratio $\in \mathbb{R}^i \leftarrow$ $\left(-\frac{\code[\A[j]]}{u_j}\right)_{j\in[1;i]}$\\
+stepDownDate $\in \mathbb{R}^+_* \leftarrow$ $\min^+(\text{ratio})$ \\
+downDateInd $\in [1;\dsize] \leftarrow \A[j]$ s.t. ratio[j] =	stepDownDate\\
+
+\textbf{Breaking step:}\\
+$a \in \mathbb{R} \leftarrow$ $\sum_{j \in [1;i]} \text{sgn}(\clars[\A[j]])u[j]$\\
+$b \in \mathbb{R} \leftarrow$ $\sum_{j \in [1;i]} \clars[\A[j]] u[j]$\\
+$c \in \mathbb{R} \leftarrow$ normPatch - $\lambda$\\
+$\Delta \in \mathbb{R} \leftarrow$ $b^2 - ac$ \\
+stepMax $\in \mathbb{R}^+ \leftarrow$ $\min(\frac{b - \sqrt{\Delta}}{a}, C)$ \\
+
+\caption{\textit{computeLars} - Compute steps}
+\end{algorithm}
+
+\begin{algorithm}[H]
 
 \SetLine
-{\color{red} Marc: TODO : choisir entre les indices ou les crochets pour les indices\\}
-	---NEW ATOM---\\
-	\If{ newAtom }{
-		$\A[i] \leftarrow $ currentInd\\
-		$G_A \in \mathbb{R}^{\dsize \times i}, G_S \in \mathbb{R}^{i \times i}$\\
-		$G_A$[$i^{th}$ column] $\leftarrow$ $G$[currentInd$^{th}$ column]\\
-		$G_S$[$i^{th}$ line] $\leftarrow$ $G_A$[currentInd$^{th}$ line]\\
-		symmetrize $G_S$\\
-		UPDATE $G_S^{-1}$
-	}
-	---VARIABLES UPDATES---\\
-	u $\in \mathbb{R}^i \leftarrow$ $G_S^{-1} (\text{sgn}(\clars_{\A[j]}))_{j\in [1;i]}$\\
-	$C \leftarrow |\clars[\A[1]]| = \max_{j=1..\dsize}(|\clars_j|)$\\
-	$\gamma \in \mathbb{R}^+_* \leftarrow$ $\min^+\left(\frac{C 
-	+ \clars_j}{1 + (G_Au)[j]}, \frac{C - \clars_j}{1 - (G_Au)[j]}\right)_{j \text{ s.t. } \A[j] = 0}$\\
-	currentInd $=j$ s.t. $\gamma = \frac{C \pm \clars_j}{1 \pm (G_Au)[j]}$\\
-	ratio $\in \mathbb{R}^i \leftarrow$ $\left(-\frac{\code[\A[j]]}{u_j}\right)_{j\in[1;i]}$\\
-	stepDownDate $\in \mathbb{R}^+_* \leftarrow$ $\min^+(\text{ratio})$ ($\min^+$ is the minimum between strictly positive values only)\\
-	downDateInd $\in [1;\dsize] \leftarrow \A[j]$ s.t. ratio[j] =	stepDownDate\\
-	---POLYNOMIAL RESOLUTION---\\
-	$a \in \mathbb{R} \leftarrow$ $\sum_{j \in [1;i]} \text{sgn}(\clars[\A[j]])u[j]$\\
-	$b \in \mathbb{R} \leftarrow$ $\sum_{j \in [1;i]} \clars[\A[j]] u[j]$\\
-	$c \in \mathbb{R} \leftarrow$ normPatch - $\lambda$\\
-	$\Delta \in \mathbb{R} \leftarrow$ $b^2 - ac$ \\
-	stepMAX $\in \mathbb{R}^+ \leftarrow$ $\min(\frac{b - \sqrt{\Delta}}{a}, C)$ \\
-	---FINAL STEP $\&$ BREAK---\\
-	$\gamma$ $\leftarrow$ min($\gamma$, stepDownDate, stepMAX)\\
-	\For{ j = 1..i}{
-		$\code[\A[j]] \leftarrow \code[\A[j]] + \gamma$u[j]\\
-	}	
-	$\clars$ $\leftarrow$ $\clars - \gamma G_Au$ \\
-	normPatch $\leftarrow$ normPatch + $a\gamma^2 - 2b\gamma$ \\
-	\If{ $|\gamma| < 10^{-6} $ {\bf or} $\gamma = stepMAX$ {\bf or} $normPatch  < 10^{-6}$ {\bf or} $normPatch - \lambda < 10^{-6}$}{
-		\textbf{break}
-	}
-	\If{ $\gamma = stepDownDate$ }{
-		DOWNDATE $G_S^{-1}$ w.r.t downDateInd\\
-		$\A[\text{downDateInd}] \leftarrow \ 0$\\
-		$\code$[downDateInd] $\leftarrow$ 0\\
-		newAtom $\leftarrow$ \textbf{False} \\
-		i $\leftarrow$ i - 1
-	}
-	\Else{
-		newAtom $\leftarrow$ \textbf{True} \\
-		i $\leftarrow$ i + 1
-	}
+$\gamma$ $\leftarrow$ min($\gamma$, stepDownDate, stepMax)\\
+\For{ j = 1..i}{
+	$\code[\A[j]] \leftarrow \code[\A[j]] + \gamma$u[j]\\
+}	
+$\clars$ $\leftarrow$ $\clars - \gamma G_Au$ \\
+normPatch $\leftarrow$ normPatch + $a\gamma^2 - 2b\gamma$ \\
+\If{ $|\gamma| < 10^{-6} $ {\bf or} $\gamma = stepMax$ {\bf or} $normPatch  < 10^{-6}$ {\bf or} $normPatch - \lambda < 10^{-6}$}{
+	\textbf{break}
+}
+\If{ $\gamma = stepDownDate$ }{
+	DOWNDATE $G_S^{-1}$ w.r.t downDateInd\\
+	$\A[\text{downDateInd}] \leftarrow \ 0$\\
+	$\code$[downDateInd] $\leftarrow$ 0\\
+	newAtom $\leftarrow$ \textbf{False} \\
+	i $\leftarrow$ i - 1
+}
+\Else{
+	newAtom $\leftarrow$ \textbf{True} \\
+	i $\leftarrow$ i + 1
+}
 	
-\caption{LARS algorithm - Mairal Version {\color{red} computeLars {\color{blue} Marc: Algo correspondant, mais \`a valider.}} - LOOP }
+\caption{\textit{computeLars} - Update code}
 
 \end{algorithm}
+
 \newpage
 
 \begin{algorithm}[H]
@@ -350,7 +407,7 @@ $\sigma$ $\leftarrow \ \frac{1}{G_s(i,i) - u.G_S[i^{th} \text{ line}]}$\\
 $G_s^{-1}(i,i)\ \leftarrow$ $\sigma$\\
 $G_s^{-1}[i^{th}$ line] $\leftarrow$ -$\sigma u$\\
 \Return $G_s^{-1} \ \leftarrow \ G_s^{-1}+\sigma u u^T$\\
-\caption{Update invert algorithm {\color{red} updateGram} {\color{blue} Marc: Algo correspondant, mais \`a valider.}}
+\caption{\textit{updateGram} {\color{blue} Marc: Algo correspondant, mais \`a valider.}}
 
 \end{algorithm}
 
@@ -377,7 +434,7 @@ $u \ \leftarrow \ G_S^{-1} [$criticalInd$^{th}$ line] without its criticalInd$^{
 }
 $G_s^{-1} \ \leftarrow \ G_s^{-1}-\sigma u u^T$\\
 
-\caption{Downdate invert algorithm {\color{red} downdateGram} {\color{blue} Marc: Algo correspondant, mais \`a valider.}}
+\caption{\textit{downdateGram} {\color{blue} Marc: Algo correspondant, mais \`a valider.}}
 
 \end{algorithm}
 
