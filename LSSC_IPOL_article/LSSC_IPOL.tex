@@ -75,17 +75,17 @@ The aim is to have a dictionary that is not redundant (independant columns), not
 The denoising problem consists then of finding one dictionary for the picture and one sparse code for each patch. Thus it can be reformulated into a minimization problem where we look for the optimal dictionary and codes that are the most similar to each noisy patches:
 \begin{equation}
 \begin{split}
-	& \min_{\dict, \code_i} \sum_{i=1}^{n} ||\code_i||_\pnorm \text{ s.t. } \forall i \in [1;n],\ \ ||\noi_i  - \dict \code_i||^2_2 \leqslant \epsilon \\
-	& \text{with } \dict \in \RR^{\psize \times \dsize} \text{ and } \forall i \in [1;n], \ \code_i \in \RR^\dsize
+	& \min_{\dict, \code_i} \sum_{i=1}^{n} ||\code_i||_\pnorm \text{ s.t. } \forall i \in [\![1,n]\!],\ \ ||\noi_i  - \dict \code_i||^2_2 \leqslant \epsilon \\
+	& \text{with } \dict \in \RR^{\psize \times \dsize} \text{ and } \forall i \in [\![1,n]\!], \ \code_i \in \RR^\dsize
 	\label{sparseDict}
 \end{split}
 \end{equation}
 $\dict \code_i$ is the estimate of the $i^{th}$ denoised patch which should be similar to the noisy patch and $\epsilon$ can be chosen according to the value of the estimated standard deviation of the noise.\\
 Once the dictionary and the codes are learned, for each pixel, we have $\psize$ estimations (from the $\psize$ overlapping patches that contain it) and their averaging give us the denoised information of this pixel:
 \begin{equation}
-	\forall i \in [1,n], \ \ \denoi[i] = \frac{1}{\psize} \sum_{j=1}^\psize \dict \code_{\sigma(i,j)}
+	\forall i \in [\![1,n]\!], \ \ \denoi[i] = \frac{1}{\psize} \sum_{j=1}^\psize \dict \code_{\sigma(i,j)}
 \end{equation}
-Where $\sigma(i,j)$ is the number of the patch that put pixel $\denoi[i]$ in $j^{th}$ position.\\
+Where $\sigma(i,j)$ {\color{red} Marc: il faudrait changer $\sigma$ pour une autre notation, pour ne pas confondre avec le bruit} is the number of the patch that put pixel $\denoi[i]$ in $j^{th}$ position.\\
 \\
 Equation \eqref{sparseDict} is usualy minimized with $\pnorm = 0$ or $1$. It becomes NP-hard to solve when $\pnorm=0$ but a greedy algorithm such as Orthogonal Matching Pursuit (ORMP) \cite{OMP} can quickly give a good approximation. The problem is convex with $\pnorm=1$ and is efficiently solved with the Least Angle Regression (LARS) algorithm \cite{LARS}. Experimental observations \cite{l0l1} have shown that the learning part is better with $\pnorm=1$ and the recomposition part with $\pnorm=0$.\\
 
@@ -97,11 +97,11 @@ First, the initial dictionnary is learned offline on the 10 000 images of the PA
 For each patch $\noi_i$, the corresponding code is computed with the current dictionary kept constant and then the dictionary is updated with all the previous codes.\\
 Thus, we minimize iteratively the two equations below:
 \begin{itemize}
-	\item For $\dict \in \RR^{\psize \times \dsize} \text{ and patch $t$, } \code^t = \argmin_{\code \in \RR^\dsize} ||\code||_1 \text{ s.t. } ||\noi_t - \dict^{t-1} \code||_2^2 \leq \lambda$
-	\item For patches 1 to $t$ and their codes $\code \in \RR^\dsize, \ \ \dict^{t}= \argmin_{\dict \in \RR^{\psize \times \dsize}} \frac{1}{t} \sum_{i=1}^t (\frac{1}{2}|\textbf{\noi}_t^i - \dict \code^i||^2_2 + \lambda ||\code^i||_1)$
+	\item For $\dict \in \RR^{\psize \times \dsize} \text{ and patch t, }$ {\color{red} Marc: il faudrait rajouter fixed ou set, non ? car au d\'ebut j'ai cru que c'\'etait une boucle for...} $\code^t = \argmin_{\code \in \RR^\dsize} ||\code||_1 \text{ s.t. } ||\noi_t - \dict^{t-1} \code||_2^2 \leq \lambda$
+	\item For patches 1 to $t$ and their codes $\code \in \RR^\dsize ${\color{red} Marc: il faudrait rajouter fixed ou set, non ?}$, \ \ \dict^{t}= \argmin_{\dict \in \RR^{\psize \times \dsize}} \frac{1}{t} \sum_{i=1}^t (\frac{1}{2}|\textbf{\noi}_t^i - \dict \code^i||^2_2 + \lambda ||\code^i||_1)$
 \end{itemize}
 The first equation is solved with the LARS algorithm.\\
-TODO
+{\color{red} Yohann: TODO}
 
 The second equation can be re-written:
 \begin{equation}
@@ -118,28 +118,42 @@ The dictionary update is thus computed through a block-coordinate descent with w
 \subsubsection{Denoising}
 TODO: MARC :)
 
+An Orthogonal Recursive Matching Pursuit (ORMP) gives an approximate solution of the (NP-complete) problem
+\begin{equation}
+\displaystyle{\argmin_{\alpha_{ij}} ||\alpha_{ij}||_0 \text{ such that } ||\bm{R}_{ij}\bm{y} - \hat{\bm{D}}\alpha_{ij}||_2^2 \leq \epsilon}
+\label{eqORMP}
+\end{equation}
+
+where $||\alpha_{ij}||_0$ refers to the $l^0$ norm of $\alpha_{ij}$, i.e. the number of non-zero coefficients of $\alpha_{ij}$. If it were perfect, this ORMP would find a patch with the sparsest representation in $\hat{\bm{D}}$ in which the distance to $\bm{R}_{ij}\bm{y}$ is less than $\epsilon$. In fact the ORMP is not perfect: indeed, it only allows one to find a patch having one sparse (not necessarily the sparsest) representation in $\hat{\bm{D}}$ and which distance to $\bm{R}_{ij}\bm{y}$ is lower than $\epsilon$.
+
+For more explanations on this algorithm, the reader may refer to \cite{KSVD}, in particular the section 2.1.1 Sparse Coding.
+{\color{red} Marc: il faut en mettre plus ou pas ? J'ai rajout\'e la citation \`a KSVD dans la biblio.}
+
+
 \subsection{Simultaneous Sparse Coding}
 
 The idea that developped Mairal et al. in this section is that similar patches should have similar decomposition upon the dictionary. Thus, they created a partition of the picture into $\nclust$ groups of similar patches called clusters. They then added a simultaneous condition which impose similar decompositions for patches of the same cluster and equation \eqref{sparseDict} became:
 \begin{equation}
 \begin{split}
-	&\min_{\dict, \code_{i,j}} \sum_{j=1}^{\nclust} \sum_{i=1}^{n_j} \frac{||\code_{i,j}||^\pnorm_\qnorm}{n_j} \text{ s.t. } \forall j \in [1; \nclust],\ \ \sum_{i=1}^{n_j}||\noi_i  - \dict \code_{i,j}||^2_2 \leqslant \epsilon_j \\
-	& \text{with } \dict \in \RR^{\psize \times \dsize} \text{ and } \forall i \in [1;n_j], \forall j \in [1; \nclust], \ \code_{i,j} \in \RR^\dsize
+	&\min_{\dict, \code_{i,j}} \sum_{j=1}^{\nclust} \sum_{i=1}^{n_j} \frac{||\code_{i,j}||^\pnorm_\qnorm}{n_j} \text{ s.t. } \forall j \in [\![1, \nclust]\!],\ \ \sum_{i=1}^{n_j}||\noi_i  - \dict \code_{i,j}||^2_2 \leqslant \epsilon_j \\
+	& \text{with } \dict \in \RR^{\psize \times \dsize} \text{ and } \forall i \in [\![1,n_j]\!], \forall j \in [\![1, \nclust]\!], \ \code_{i,j} \in \RR^\dsize
 	\label{simultSparseDict}
 \end{split}
 \end{equation}
 where $n_j$ is the size of the $j^{th}$ cluster and $\epsilon_j$ is chosen with respect to the noise inside it.\\
 \\
-Equation \eqref{simultSparseDict} is usualy minimized with $(\pnorm, \qnorm) = (0, \infty)$ or $(1, 2)$. As for Equation \eqref{sparseDict}, it becomes NP-hard to solve when $(\pnorm, \qnorm)=(0, \infty)$ and Simultaneous Orthogonal Matching Pursuit (SORMP) \cite{SOMP} gives a good approximation. The problem is convex when $(\pnorm, \qnorm)=(1, 2)$ and a slight modification of the LARS algorithm gives a solution. Once again, the convex problem is used for the learning part while the SORMP is used for the denoising part.\\
+Equation \eqref{simultSparseDict} is usualy minimized with $(\pnorm, \qnorm) = (0, \infty)$ or $(1, 2)$. As for Equation \eqref{sparseDict}, it becomes NP-hard to solve when $(\pnorm, \qnorm)=(0, \infty)$ and Simultaneous Orthogonal Recursive Matching Pursuit (SORMP) \cite{SOMP} gives a good approximation. The problem is convex when $(\pnorm, \qnorm)=(1, 2)$ and a slight modification of the LARS algorithm gives a solution. Once again, the convex problem is used for the learning part while the SORMP is used for the denoising part.\\
 As for the non-simultaneous sparse coding, the denoised pixel is approximated by an average of the denoised versions of all the overlapping patches.
 
 \subsubsection{Simultanous Learning}
 
 Not seen in details. The algorithm used is the Simultaneous LARS which is similar to LARS but a "simultaneous" condition that uses cluster information.
+{\color{red} \\ Marc:  on va rajouter des trucs l\`a non ?}
 
 \subsubsection{Simultanous Denoising}
 
 Not seen in details. The algorithm used is the Simultaneous ORMP which is similar to ORMP but a "simultaneous" condition that uses cluster information.
+{\color{red} \\ Marc:  on va rajouter des trucs l\`a non ?}
 
 %-------------------------------------------------------------------------------
 \newpage
@@ -156,7 +170,7 @@ Not seen in details. The algorithm used is the Simultaneous ORMP which is simila
 The previous parts are used in order to perform a global denoising. First, a rough denoising is realized upon the whole picture. This way, a coherent dictionary is learned and similar patches can be easily regrouped. Then, the clustering is performed and the previous process is applied once more on each cluster indepently. However, the similarity between patches is also used, adding a simultaneous condition upon patches. The whole algorithm is summed up in Algorithm \ref{Global}.\\
 
 \begin{algorithm}[H]
-\textbf{Input} : noisy picture $\noi$, pre-learned dictionary $\dict$ \\
+\textbf{Input} : noisy picture $\noi$, pre-learned dictionary $\dict$ {\color{red} Marc: dire ce qu'est N}\\
 \textbf{Output} : denoised picture $\denoi$\\
 \SetLine
 	Update $\dict$ with LARS\\
@@ -307,7 +321,7 @@ normPatch $\in \mathbb{R}^+ \leftarrow$ $||\noi||^2_2$\\
 Initialize code and active index:\\
 \vspace{0.5mm}
 $\code \in \mathbb{R}^{\dsize} \leftarrow$ \textbf{0}\\
-$\A \in [0;\dsize]^{\dsize} \leftarrow$ \textbf{0}\\
+$\A \in [\![0, \dsize]\!]^{\dsize} \leftarrow$ \textbf{0}\\
 \vspace{2mm}
 
 Compute most correlated element:\\
@@ -344,19 +358,19 @@ newAtom $\leftarrow$ \textbf{True}\\
 
 \begin{algorithm}[H]
 \textbf{Initial step:}\\
-u $\in \mathbb{R}^i \leftarrow$ $G_S^{-1} (\text{sgn}(\clars[\A[j]]))_{j\in [1;i]}$\\
+u $\in \mathbb{R}^i \leftarrow$ $G_S^{-1} (\text{sgn}(\clars[\A[j]]))_{j\in [\![1, i]\!]}$\\
 $C \leftarrow |\clars[\A[1]]| = \max_{j=1..\dsize}(|\clars[j]|)$\\
 $\gamma \in \mathbb{R}^+_* \leftarrow$ $\min^+\left(\frac{C + \clars[j]}{1 + (G_Au)[j]}, \frac{C - \clars[j]}{1 - (G_Au)[j]}\right)_{j \text{ s.t. } \A[j] = 0}$\\
 currentInd $=j$ s.t. $\gamma = \frac{C \pm \clars[j]}{1 \pm (G_Au)[j]}$\\
 
 \textbf{Downdate step:}\\
-ratio $\in \mathbb{R}^i \leftarrow$ $\left(-\frac{\code[\A[j]]}{u_j}\right)_{j\in[1;i]}$\\
+ratio $\in \mathbb{R}^i \leftarrow$ $\left(-\frac{\code[\A[j]]}{u_j}\right)_{j\in[\![1, i]\!]}$\\
 stepDownDate $\in \mathbb{R}^+_* \leftarrow$ $\min^+(\text{ratio})$ \\
-downDateInd $\in [1;\dsize] \leftarrow \A[j]$ s.t. ratio[j] =	stepDownDate\\
+downDateInd $\in [\![1, \dsize]\!] \leftarrow \A[j]$ s.t. ratio[j] =	stepDownDate\\
 
 \textbf{Breaking step:}\\
-$a \in \mathbb{R} \leftarrow$ $\sum_{j \in [1;i]} \text{sgn}(\clars[\A[j]])u[j]$\\
-$b \in \mathbb{R} \leftarrow$ $\sum_{j \in [1;i]} \clars[\A[j]] u[j]$\\
+$a \in \mathbb{R} \leftarrow$ $\sum_{j \in [\![1, i]\!]} \text{sgn}(\clars[\A[j]])u[j]$\\
+$b \in \mathbb{R} \leftarrow$ $\sum_{j \in [\![1, i]\!]} \clars[\A[j]] u[j]$\\
 $c \in \mathbb{R} \leftarrow$ normPatch - $\lambda$\\
 $\Delta \in \mathbb{R} \leftarrow$ $b^2 - ac$ \\
 stepMax $\in \mathbb{R}^+ \leftarrow$ $\min(\frac{b - \sqrt{\Delta}}{a}, C)$ \\
@@ -416,7 +430,7 @@ $G_s^{-1}[i^{th}$ line] $\leftarrow$ -$\sigma u$\\
 \SetLine
 \textbf{Input} : pseudo-Gram matrix $G_A \in \mathbb{R}^{\dsize \times i}$
 Gram matrix $G_S \in \mathbb{R}^{i \times i}$, and its 
-inverse $G_S^{-1}\in \mathbb{R}^{i \times i}$, criticalInd $\in [1; \dsize]$, current iteration $i$\\
+inverse $G_S^{-1}\in \mathbb{R}^{i \times i}$, criticalInd $\in [\![1, \dsize]\!]$, current iteration $i$\\
 \textbf{Output} : downdated matrices $G_A \in \mathbb{R}^{\dsize \times i-1}, G_S, G_S^{-1} \in \mathbb{R}^{i-1 \times i-1}$\\
 
 $\sigma \ \leftarrow \ \frac{1}{G_S^{-1}(\text{criticalInd}, \text{criticalInd})}$\\
@@ -515,7 +529,13 @@ vision par ordinateur}.
 	\emph{Algorithms for simultaneous sparse approximation}.
 	Sig. Proc.,
 	86:572–602,
-	2006.	
+	2006.
+	
+\bibitem{KSVD}
+	M. Lebrun and A. Leclaire
+	\emph{{An Implementation and Detailed Analysis of the K-SVD Image Denoising Algorithm}}.
+	{{Image Processing On Line}}.,
+	2012.
 
 \end{thebibliography}
 
