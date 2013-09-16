@@ -7,8 +7,7 @@
 \BOOKMARK [2][-]{subsection.2.3}{Simultaneous Sparse Coding}{section.2}% 7
 \BOOKMARK [3][-]{subsubsection.2.3.1}{Simultanous Learning}{subsection.2.3}% 8
 \BOOKMARK [3][-]{subsubsection.2.3.2}{Simultanous Denoising}{subsection.2.3}% 9
-\BOOKMARK [1][-]{section.3}{Notations}{}% 10
-\BOOKMARK [1][-]{section.4}{Algorithm Description}{}% 11
-\BOOKMARK [2][-]{subsection.4.1}{ Algorithm Overview }{section.4}% 12
-\BOOKMARK [2][-]{subsection.4.2}{Learned Sparse Coding}{section.4}% 13
-\BOOKMARK [3][-]{subsubsection.4.2.1}{Learning Dictionary}{subsection.4.2}% 14
+\BOOKMARK [1][-]{section.3}{Algorithm Description}{}% 10
+\BOOKMARK [2][-]{subsection.3.1}{ Algorithm Overview }{section.3}% 11
+\BOOKMARK [2][-]{subsection.3.2}{Learned Sparse Coding}{section.3}% 12
+\BOOKMARK [3][-]{subsubsection.3.2.1}{Learning Dictionary}{subsection.3.2}% 13

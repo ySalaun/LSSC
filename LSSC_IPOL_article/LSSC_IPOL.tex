@@ -144,17 +144,15 @@ As for the non-simultaneous sparse coding, the denoised pixel is approximated by
 \subsubsection{Simultanous Learning}
 
 Not seen in details. The algorithm used is the Simultaneous LARS which is similar to LARS but a "simultaneous" condition that uses cluster information.
-{\color{red} \\ Marc:  on va rajouter des trucs l\`a non ?}
 
 \subsubsection{Simultanous Denoising}
 
 Not seen in details. The algorithm used is the Simultaneous ORMP which is similar to ORMP but a "simultaneous" condition that uses cluster information.
-{\color{red} \\ Marc:  on va rajouter des trucs l\`a non ?}
 
 %-------------------------------------------------------------------------------
-\newpage
+%\newpage
 
-\section{Notations}
+%\section{Notations}
 
 %-------------------------------------------------------------------------------
 \newpage
@@ -223,7 +221,8 @@ It computes a distribution of iid patches with the function \textit{getRandList}
 	\item Dictionary update - \textit{updateDictionary}: 
 \end{itemize}
 Block-coordinate descent with warmrestarts algorithm that minimizes Equation \eqref{BlockDescent}.\\
-{\color{red}TODO: se renseigner sur la  methode ? pk si A(j,j) = 0 ...} \\
+The method is quoted in Mairal's article without explanations, only a link to \cite{BlockDescent}.\\ 
+%{\color{red}TODO: se renseigner sur la  methode ? pk si A(j,j) = 0 ...} \\
 
 \begin{algorithm}[H]
 
@@ -260,7 +259,7 @@ Block-coordinate descent with warmrestarts algorithm that minimizes Equation \eq
 \end{itemize}
 The LARS algorithm is very long and has been split up for better readibility. \\
 ($\min^+$ is the minimum between strictly positive values only)\\
-{\color{red}TODO: preciser la version + pk inversion bizarre des matrices}
+%{\color{red}TODO: preciser la version + pk inversion bizarre des matrices}
 \\
 
 \begin{algorithm}[H]
@@ -337,7 +336,7 @@ newAtom $\leftarrow$ \textbf{True}\\
 
 \newpage
 
-\noindent At each iteration, the code $\code$ can be updated. If it is, a new atom is added to it making it less sparse but a better approximation of the patch. The atom added is the new most correlated element. Though adding a new element to the code is not very costful, the Gram matrices have to be updated of one line and one inverse has to be calculated. One could theorically computes the inverse with any algorithm but the LARS algorithm is iterated a lot in the whole algorithm and the inversion has to be very fast in order to have a not too slow denoising method. Thus, the inverse is computed iteratively, using the previous inverse to compute it quickly. {\color{red} precise method name.}\\
+\noindent At each iteration, the code $\code$ can be updated. If it is, a new atom is added to it making it less sparse but a better approximation of the patch. The atom added is the new most correlated element. Though adding a new element to the code is not very costful, the Gram matrices have to be updated of one line and one inverse has to be calculated. One could theorically computes the inverse with any algorithm but the LARS algorithm is iterated a lot in the whole algorithm and the inversion has to be very fast in order to have a not too slow denoising method. Thus, the inverse is computed iteratively by Matrix Inversion Lemma, using the previous inverse to compute it quickly.\\
 
 \begin{algorithm}[H]
 \SetLine
@@ -429,22 +428,54 @@ normPatch $\leftarrow$ normPatch + $a\gamma^2 - 2b\gamma$ \\
 
 \newpage
 
+\noindent The inverse of the Gram matrix $G_S$ is computed iteratively at each step where a new code is added. The method used needs to compute the inverse quickly, thus Mairal et al. used the Matrix Inversion Lemma. The idea of this inversion at each iteration $i$ is summed up below:
+\begin{itemize}
+	\item Write $G_{S_i}$ and $G_{S_i}^{-1}$ as block matrices: \\
+\begin{equation*}
+	G_{S_i} = 
+	\begin{pmatrix}
+   		G_{S_{i-1}} & r \\
+   		r^T & G_{S_i}(i,i) 
+	\end{pmatrix}
+	\ \ G_{S_i}^{-1} =
+	\begin{pmatrix}
+   		A & s \\
+   		s^T & G_{S_i}^{-1}(i,i) 
+	\end{pmatrix}
+\end{equation*}	
+	where $G_{S_{i-1}}$ and $G_{S_{i-1}}^{-1}$ are the corresponding matrices from the previous iteration, $r$ is the $i^{th}$ line of $G_{S_i}$ and the only unknowns are $s$ and $G_{S_i}^{-1}(i,i)$.
+	\item Knowing that $G_S(i)G_S^{-1}(i) = G_S(i)G_S^{-1}(i) = I$ and that the matrices are symmetric, 3 equations can be kept:
+\begin{equation*}
+	\left \{
+   	\begin{array}{r c l}
+   		A					& = &	G_{S_{i-1}}^{-1} + (G_{S_{i-1}}^{-1} r) (G_{S_{i-1}}^{-1} r)^T\\
+      	s  					& = &	-\frac{1}{G_{S_i}(i,i) - r^T G_{S_{i-1}}^{-1} r} G_{S_{i-1}}^{-1} r\\
+      	G_{S_i}^{-1}(i,i)	& = &	\frac{1}{G_{S_i}(i,i) - r^T G_{S_{i-1}}^{-1} r}
+   	\end{array}
+   	\right .
+\end{equation*}
+\end{itemize}
+
 \begin{algorithm}[H]
 
 \SetLine
-\textbf{Input} : Gram matrix $G_S \in \mathbb{R}^{i \times i}$, and its former inverse to update $G_S^{-1}\in \mathbb{R}^{i-1 \times i-1}$\\
-\textbf{Output} : updated  $G_S^{-1}\in \mathbb{R}^{i \times i}$\\
+\textbf{Input} : Gram matrix $G_S \in \mathbb{R}^{i \times i}$, and its former inverse to update $G_{S_{i-1}}^{-1}\in \mathbb{R}^{i-1 \times i-1}$\\
+\textbf{Output} : updated  $G_{S_i}^{-1}\in \mathbb{R}^{i \times i}$\\
 \If{i = 1}{
 	\Return $\frac{1}{G_S}$
 } 
-$u \ \leftarrow \ G_S^{-1} G_S[i^{th}$ line]\\
-$\sigma$ $\leftarrow \ \frac{1}{G_s(i,i) - u.G_S[i^{th} \text{ line}]}$\\
-$G_s^{-1}(i,i)\ \leftarrow$ $\sigma$\\
-$G_s^{-1}[i^{th}$ line] $\leftarrow$ -$\sigma u$\\
-\Return $G_s^{-1} \ \leftarrow \ G_s^{-1}+\sigma u u^T$\\
-\caption{\textit{updateGram} {\color{blue} Marc: Algo correspondant, mais \`a valider.}}
+$r \in \mathbb{R}^{i-1} \leftarrow \  G_S[i^{th}$ line] (without $G_S(i,i)$ coefficient)\\
+$u \in \mathbb{R}^{i-1} \leftarrow \ G_{S_{i-1}}^{-1} r$\\
+$\sigma \in \mathbb{R} \leftarrow \ \frac{1}{G_s(i,i) - u.G_S[i^{th} \text{ line}]}$\\
+$G_{S_i}^{-1}(i,i) \in \mathbb{R} \leftarrow \ \sigma$\\
+$G_{S_i}^{-1}[i^{th}$ line]$\in \mathbb{R}^{i-1} \leftarrow \ -\sigma u$ (without $G_{S_i}^{-1}(i,i)$ coefficient)\\
+\Return $G_{S_i}^{-1} \in \RR^{i \times i} \leftarrow \ G_{S_i}^{-1}+\sigma u u^T$\\
+\caption{\textit{updateGram}}
+% TODO: à revalider
 
-\end{algorithm}
+\end{algorithm}\\
+
+\noindent This step allows to delete a critical index from the Gram matrix and its inverse. The processus is the opposite of the update algorithm.\\
 
 \begin{algorithm}[H]
 
@@ -454,37 +485,37 @@ Gram matrix $G_S \in \mathbb{R}^{i \times i}$, and its
 inverse $G_S^{-1}\in \mathbb{R}^{i \times i}$, criticalInd $\in [\![1, \dsize]\!]$, current iteration $i$\\
 \textbf{Output} : downdated matrices $G_A \in \mathbb{R}^{\dsize \times i-1}, G_S, G_S^{-1} \in \mathbb{R}^{i-1 \times i-1}$\\
 
-$\sigma \ \leftarrow \ \frac{1}{G_S^{-1}(\text{criticalInd}, \text{criticalInd})}$\\
-$u \ \leftarrow \ G_S^{-1} [$criticalInd$^{th}$ line] without its criticalInd$^{th}$ coefficient\\
+$\sigma \in \RR \leftarrow \ \frac{1}{G_S^{-1}(\text{criticalInd}, \text{criticalInd})}$\\
+$u \in \RR^{i-1} \leftarrow \ G_S^{-1} [$criticalInd$^{th}$ line] without its criticalInd$^{th}$ coefficient\\
 \For{j= criticalInd:i-1}{
-	$G_A[j^{th}$ column] $\leftarrow$ $G_A[(j+1)^{th}$ column]\\
+	$G_A[j^{th}$ column] $\in \RR^{\dsize} \leftarrow$ $G_A[(j+1)^{th}$ column]\\
 	\For{k= 1:criticalInd-1}{
-		$G_S(j,k)$ $\leftarrow$ $G_S(j+1,k)$\\
-		$G_S^{-1}(j,k)$ $\leftarrow$ $G_S^{-1}(j+1,k)$\\
+		$G_S(j,k) \in \RR \leftarrow \ G_S(j+1,k)$\\
+		$G_S^{-1}(j,k) \in \RR \leftarrow \ G_S^{-1}(j+1,k)$\\
 	}
 	\For{k= criticalInd:i}{
-		$G_S(j,k)$ $\leftarrow$ $G_S(j+1,k+1)$\\
-		$G_S^{-1}(j,k)$ $\leftarrow$ $G_S^{-1}(j+1,k+1)$\\
+		$G_S(j,k) \in \RR \leftarrow \ G_S(j+1,k+1)$\\
+		$G_S^{-1}(j,k) \in \RR \leftarrow \ G_S^{-1}(j+1,k+1)$\\
 	}
 }
-$G_s^{-1} \ \leftarrow \ G_s^{-1}-\sigma u u^T$\\
+$G_S^{-1} \in \RR^{i-1 \times i-1} \leftarrow \ G_S^{-1}-\sigma u u^T$\\
 
-\caption{\textit{downdateGram} {\color{blue} Marc: Algo correspondant, mais \`a valider.}}
+\caption{\textit{downdateGram}}
+% TODO: correspondant ==> A valider
 
-\end{algorithm}
-
-%-------------------------------------------------------------------------------
-\section*{Glossary}
-
-
+\end{algorithm} \\
 
 %-------------------------------------------------------------------------------
-\section*{Image Credits}
-
-\includegraphics[height=2em]{ipol_logo} \copyright\ IPOL (there's no
-need to credit this image, here is used as an example.)
+%\section*{Glossary}
 
 %-------------------------------------------------------------------------------
+%\section*{Image Credits}
+
+%\includegraphics[height=2em]{ipol_logo} \copyright\ IPOL (there's no need to credit this image, here is used as an example.)
+
+%-------------------------------------------------------------------------------
+\newpage
+
 \begin{thebibliography}{9}
 
 \bibitem{Patch01}
