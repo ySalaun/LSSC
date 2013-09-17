@@ -47,12 +47,15 @@ $^2$ CMLA, ENS Cachan, France (\texttt{marc.lebrun@cmla.ens-cachan.fr})}
 
 %-------------------------------------------------------------------------------
 \begin{abstract}
-
+LSSC (for Learned Simultaneous Sparse Coding) is a signal representation method which, from a set of signals, can derive a dictionary able to approximate each signal with a sparse combination of the atoms. Close to KSVD method, LSSC also adds the idea of clustering and simultaneous denoising. This paper focuses on the LSSC denoising method and describes all the algorithms used to learn the dictionary, clusterize the picture and denoise it. 
 \end{abstract} 
 
 %-------------------------------------------------------------------------------
 \section{Overview}
-
+Denoising is a significant subject in image processing. Many algorithms have been proposed to solve this problem.\\
+Some of them use the redundancy of the picture to denoise it. We can mention Fourier or wavelets decomposition where the coefficients assimilated to noise were suppressed. Then the idea of a sparse representation of a picture came with the use of dictionary that would contain the significant part of the picture information. In this scope, KSVD \cite{KSVD} used Orthogonal Recursive Matching Pursuit in order to compute a sparse decomposition of each noisy patch in the picture.\\
+Other methods such as NL-means \cite{Patch02} used non local similarities inside a picture in order to combine the noisy information and get rid of the noise.\\
+LSSC merged both of these ideas, using a dictionary to sparsely approximate the picture and the patch similarities to force the dictionary approximation to follow the same patches similarity.
 
 %-------------------------------------------------------------------------------
 \section{Theoretical Description}
@@ -100,9 +103,12 @@ Thus, we minimize iteratively the two equations below:
 	\item For a given dictionary $\dict \in \RR^{\psize \times \dsize} \text{ and patch t, } \code^t = \argmin_{\code \in \RR^\dsize} ||\code||_1 \text{ s.t. } ||\noi_t - \dict^{t-1} \code||_2^2 \leq \lambda$
 	\item For patches 1 to $t$ and their fixed codes $\code \in \RR^\dsize , \ \ \dict^{t}= \argmin_{\dict \in \RR^{\psize \times \dsize}} \frac{1}{t} \sum_{i=1}^t (\frac{1}{2}|\textbf{\noi}_t^i - \dict \code^i||^2_2 + \lambda ||\code^i||_1)$
 \end{itemize}
-The first equation is solved with the LARS algorithm.\\
-{\color{red} Yohann: TODO}
-
+The first equation is solved with the LARS algorithm. The algorithm works incrementally, beginning with a null code $\code = 0$ and adding a new atom that would approximate the noisy patch $\noi$ better.\\
+For this, the notion of correlation appears and the new element has to be the most correlated element. This element of $\dict$ is the one whose index $j$ is such that:
+\begin{equation*}
+	\clars_j = ||\dict^T(\noi - \code)||_{\infty} \text{ with $\code$ being the current incremented code}
+\end{equation*}
+Then a step is computed to updat the code toward this direction. However this step is chosen such that the next most correlated element will be equally correlated with all the elements chosen before (called the active indexes). Once the code $\code$ is close enough to the noisy patch $\noi$, the algorithm stops and the current code is the solution we looked for.\\
 The second equation can be re-written:
 \begin{equation}
 	\dict^{t}= \argmin_{\dict \in \RR^{\psize \times \dsize}} \frac{1}{t} (\frac{1}{2} \text{Tr}(\dict^T \dict B^t)- \text{Tr}(D^T C^t )
@@ -123,7 +129,7 @@ In this part, we consider that $\pnorm = 0$ in equation \eqref{sparseDict}. The 
 \label{eqORMP}
 \end{equation}
 If it were perfect, this ORMP would find a patch with the sparsest representation in $\dict$ in which the distance to $\noi_i$ is less than $\epsilon$. In fact the ORMP is not perfect: indeed, it only allows one to find a patch having one sparse (not necessarily the sparsest) representation in $\dict$ and which distance to $\noi_i$ is lower than $\epsilon$.\\
-For more explanations on this algorithm, the reader may refer to \cite{KSVD}, in particular the section 2.1.1 Sparse Coding.
+For more explanations on this algorithm, the reader may refer to \cite{KSVD_IPOL}, in particular the section 2.1.1 Sparse Coding.
 
 
 \subsection{Simultaneous Sparse Coding}
@@ -357,8 +363,8 @@ newAtom $\leftarrow$ \textbf{True}\\
 \noindent The algorithm computes 3 steps at each iteration:
 \begin{itemize}
 	\item $\gamma$ is the step that allows to reach the new most correlated element. With this step, all the active indexes and the most correlated of the non-active indexes will have the same correlation. Thus, this index will be added to the code and become active.
-	\item stepDownDate is a limit for $\gamma$. If it is reached, one active-index (downDateInd) ... {\color{red} precise !!!}
-	\item stepMax is also a limit for $\gamma$. When reached, the algorithm stops because the best solution for Equation \eqref{}has been found.{\color{red} link to LARS equation !!!}
+	\item stepDownDate is a limit for $\gamma$. This step allows to keep a sign consistency between correlation and active indexes. If it is reached, one active index (downDateInd) do not respect this consistency anymore and has to be deleted from the code $\code$.
+	\item stepMax is also a limit for $\gamma$. When reached, the algorithm stops because the best solution for the LARS equation has been found.
 \end{itemize}
 
 \begin{algorithm}[H]
@@ -475,6 +481,8 @@ $G_{S_i}^{-1}[i^{th}$ line]$\in \mathbb{R}^{i-1} \leftarrow \ -\sigma u$ (withou
 
 \end{algorithm}\\
 
+\newpage
+
 \noindent This step allows to delete a critical index from the Gram matrix and its inverse. The processus is the opposite of the update algorithm.\\
 
 \begin{algorithm}[H]
@@ -582,8 +590,24 @@ vision par ordinateur}.
 	Sig. Proc.,
 	86:572–602,
 	2006.
-	
+
 \bibitem{KSVD}
+	M. Aharon, Michael Elad, and A. Bruckstein
+	\emph{K-SVD: An Algorithm for Designing Overcomplete Dictionaries for Sparse Representation}.
+	IEEE Transactions on image processing,
+	pages 9–12,
+	2005.
+	http://dx.doi.org/10.1109/TSP.2006.881199.	
+	
+\bibitem{KSVD_MAIRAL}	
+	J. Mairal, M. Elad, and G. Sapiro
+	\emph{Sparse representation for color image restoration}.
+	IEEE Transactions on image processing,
+	17(1):53–69,
+	2008.
+	http://dx.doi.org/10.1109/TIP.2007.911828.
+	
+\bibitem{KSVD_IPOL}
 	M. Lebrun and A. Leclaire
 	\emph{{An Implementation and Detailed Analysis of the K-SVD Image Denoising Algorithm}}.
 	{{Image Processing On Line}}.,
