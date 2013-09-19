@@ -246,24 +246,24 @@ void Matrix::getCol(
 //! Fill the j-th column of the current matrix by a vector
 void Matrix::setCol(
   std::vector<float> const& i_col,
-  const unsigned int p_col){
+  const unsigned int p_col,
+  const bool p_minus,
+  const int p_iMax){
 
   //! Check size
-  if (p_col >= m_col) {
+  const unsigned int n = (p_iMax > -1 ? p_iMax : m_row);
+  if (n > m_row || n > i_col.size() || p_col >= m_col) {
     cerr << "setCol : Error - asked column is too big for the size of the matrix" << endl;
-    return;
-  }
-  if (i_col.size() > (int) m_row) {
-    cerr << "setCol : Error - too much values" << endl;
     return;
   }
 
   //! Initializations
+  const float sign = (p_minus ? -1.f : 1.f);
   float* iM = &m_mat[p_col];
   const float* iC = &i_col[0];
 
-  for (unsigned int i = 0; i < i_col.size(); i++) {
-    iM[i * m_col] = iC[i];
+  for (unsigned int i = 0; i < n; i++) {
+    iM[i * m_col] = sign * iC[i];
   }
 }
 

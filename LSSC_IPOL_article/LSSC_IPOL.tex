@@ -475,6 +475,7 @@ $u \in \mathbb{R}^{i-1} \leftarrow \ G_{S_{i-1}}^{-1} r$\\
 $\sigma \in \mathbb{R} \leftarrow \ \frac{1}{G_s(i,i) - u.G_S[i^{th} \text{ line}]}$\\
 $G_{S_i}^{-1}(i,i) \in \mathbb{R} \leftarrow \ \sigma$\\
 $G_{S_i}^{-1}[i^{th}$ line]$\in \mathbb{R}^{i-1} \leftarrow \ -\sigma u$ (without $G_{S_i}^{-1}(i,i)$ coefficient)\\
+$G_{S_i}^{-1}[i^{th}$ column]$\in \mathbb{R}^{i-1} \leftarrow \ -\sigma u^T$ (without $G_{S_i}^{-1}(i,i)$ coefficient)\\
 \Return $G_{S_i}^{-1} \in \RR^{i \times i} \leftarrow \ G_{S_i}^{-1}+\sigma u u^T$\\
 \caption{\textit{updateGram}}
 % TODO: à revalider

@@ -88,7 +88,9 @@ public :
   //! Fill the j-th column of the current matrix by a vector
   void setCol(
     std::vector<float> const& i_col,
-    const unsigned int p_col);
+    const unsigned int p_col,
+    const bool p_minus = false,
+    const int p_iMax = -1);
 
   //! Copy a column of another matrix into this one
   void copyCol(

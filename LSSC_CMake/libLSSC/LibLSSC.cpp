@@ -368,9 +368,16 @@ void updateGram(
   }
   //! General case
   else {
-    //! iRow = Gs[i-th row]
+    //! iRow = Gs[i-th row] without the i-th coefficient
     vector<float> iRow;
     i_Gs.getRow(iRow, p_iter, p_iter);
+
+    unsigned int a,b;
+    i_Gs.getSize(a,b);
+    cout << "-------------------------------------------" << endl;
+    cout << a << "/" << b << endl;
+    cout << p_iter << endl;
+    cout << iRow.size() << endl;
 
     //! u = Gs^-1 Gs[i-th row]
     vector<float> u;
@@ -392,6 +399,9 @@ void updateGram(
 
     //! Gs^-1[i-th row] = - sigma u
     io_invGs.setRow(v, p_iter, true, p_iter);
+
+    //! Gs^-1[i-th row] = - sigma u
+    io_invGs.setCol(v, p_iter, true, p_iter);
 
     //! Gs^-1 = Gs^-1 + sigma u u^t
     io_invGs.addXYt(u, v, p_iter);

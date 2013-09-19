@@ -82,7 +82,7 @@ int argc
 
   // TEST PART
   bool test = false;
-    if(test){
+  if(test){
     bool testFailed = false;
     float epsilon = 0.005;
 
@@ -114,7 +114,7 @@ int argc
     }
 
     // Test of update Gram matrix
-    epsilon = 0.15;
+    epsilon = 0.05;
 
     Matrix invG    (params.k, params.k);
     Matrix Id1     (params.k, params.k);
@@ -144,6 +144,24 @@ int argc
 
         }
       }
+
+      for(unsigned int i=0; i<iter+1; i++){
+        for(unsigned int j=0; j<i; j++){
+        
+          if(fabs(G(i,j) - G(j,i)) > epsilon){
+            cout << "TEST ERROR: Gram matrix is not symmetric" << endl;
+            cout << "at " << iter << "-th iteration, G(" << i << "," << j << ") = " << G(i,j) << " != " << " G(" << j << "," << i << ") = " << G(j,i) << endl;
+            testFailed = true;
+          }
+        
+          if(fabs(invG(i,j) - invG(j,i)) > epsilon){
+            cout << "TEST ERROR: the updateGram function does not work, inverse of Gram matrix is not symmetric" << endl;
+            cout << "at " << iter << "-th iteration, invG(" << i << "," << j << ") = " << invG(i,j) << " != " << " invG(" << j << "," << i << ") = " << invG(j,i) << endl;
+            testFailed = true;
+          }
+
+        }
+      }
     
       if(testFailed){
         cout << "-------------------------------" << endl;
@@ -160,75 +178,76 @@ int argc
 
     }
   }
+  else{
+    //! LSSC
+    display("----------------------------------------------", params);
+    display("PART 1 - LEARNING PART WITH LARS", params);
+    unsigned nRandomPatches = 50;//unsigned(floor(.2 * params.nPatch));
+    trainL1(dict, imNoisy, nRandomPatches, params);
 
-  //! LSSC
-  display("----------------------------------------------", params);
-  display("PART 1 - LEARNING PART WITH LARS", params);
-  unsigned nRandomPatches = 50;//unsigned(floor(.2 * params.nPatch));
-  trainL1(dict, imNoisy, nRandomPatches, params);
+    display("PART 2 - ORMP from KSVD", params);
+    // TODO
 
-  display("PART 2 - ORMP from KSVD", params);
-  // TODO
+    display("PART 3 - CLUSTERING", params);
+    // TODO
 
-  display("PART 3 - CLUSTERING", params);
-  // TODO
+    display("PART 4 - LEARNING WITH SIMULTANEOUS LARS", params);
+    // TODO
 
-  display("PART 4 - LEARNING WITH SIMULTANEOUS LARS", params);
-  // TODO
+    display("PART 5 - SIMULTANEOUS ORMP", params);
+    // TODO
 
-  display("PART 5 - SIMULTANEOUS ORMP", params);
-  // TODO
-
-  // TODO Marc: ne jamais faire de push_back lorsqu'on peut éviter, c'est ultra lent.
-  // TODO Marc: c'est normal de ne copier que le premier canal ?
-  // TODO Yohann: concrètement ça sert à rien ces lignes et faudra les changer pour en faire ce qui nous intéresse ;)
-  for (unsigned c = 0; c < imSize.nChannels; c++) {
-    for (unsigned i = 0; i < imSize.height; i++) {
-      for (unsigned j = 0; j < imSize.width; j++) {
-        imFinal.push_back(imNoisy[0 * imSize.wh + i * imSize.width + j]);
-        imDiff.push_back(imNoisy[0 * imSize.wh + i * imSize.width + j]);
-        imBias.push_back(imNoisy[0 * imSize.wh + i * imSize.width + j]);
-        imDiffBias.push_back(imNoisy[0 * imSize.wh + i * imSize.width + j]);
+    // TODO Marc: ne jamais faire de push_back lorsqu'on peut éviter, c'est ultra lent.
+    // TODO Marc: c'est normal de ne copier que le premier canal ?
+    // TODO Yohann: concrètement ça sert à rien ces lignes et faudra les changer pour en faire ce qui nous intéresse ;)
+    for (unsigned c = 0; c < imSize.nChannels; c++) {
+      for (unsigned i = 0; i < imSize.height; i++) {
+        for (unsigned j = 0; j < imSize.width; j++) {
+          imFinal.push_back(imNoisy[0 * imSize.wh + i * imSize.width + j]);
+          imDiff.push_back(imNoisy[0 * imSize.wh + i * imSize.width + j]);
+          imBias.push_back(imNoisy[0 * imSize.wh + i * imSize.width + j]);
+          imDiffBias.push_back(imNoisy[0 * imSize.wh + i * imSize.width + j]);
+        }
       }
     }
-  }
 
-  //! Compute PSNR and RMSE
-  float psnr, rmse;
-  computePsnr(im, imFinal, psnr, rmse, "imFinal", verbose);
+    //! Compute PSNR and RMSE
+    float psnr, rmse;
+    computePsnr(im, imFinal, psnr, rmse, "imFinal", verbose);
 
-  float psnrBias, rmseBias;
-  if (doBias) {
-    computePsnr(im, imBias, psnrBias, rmseBias, "imBiasFinal", verbose);
-  }
+    float psnrBias, rmseBias;
+    if (doBias) {
+      computePsnr(im, imBias, psnrBias, rmseBias, "imBiasFinal", verbose);
+    }
 
-  //! save noisy, denoised and differences images
-  if (verbose) {
-    cout << "Save images...";
-  }
-  if (saveImage(argv[3], imNoisy, imSize, 0.f, 255.f) != EXIT_SUCCESS) {
-    return EXIT_FAILURE;
-  }
-
-  if (saveImage(argv[4], imFinal, imSize, 0.f, 255.f) != EXIT_SUCCESS) {
-    return EXIT_FAILURE;
-  }
-
-  if (saveImage(argv[5], imDiff, imSize, 0.f, 255.f) != EXIT_SUCCESS) {
-    return EXIT_FAILURE;
-  }
-
-  if (doBias) {
-    if (saveImage(argv[6], imBias, imSize, 0.f, 255.f) != EXIT_SUCCESS) {
+    //! save noisy, denoised and differences images
+    if (verbose) {
+      cout << "Save images...";
+    }
+    if (saveImage(argv[3], imNoisy, imSize, 0.f, 255.f) != EXIT_SUCCESS) {
       return EXIT_FAILURE;
     }
 
-    if (saveImage(argv[7], imDiffBias, imSize, 0.f, 255.f) != EXIT_SUCCESS) {
+    if (saveImage(argv[4], imFinal, imSize, 0.f, 255.f) != EXIT_SUCCESS) {
       return EXIT_FAILURE;
     }
-  }
-  if (verbose) {
-    cout << "done." << endl;
+
+    if (saveImage(argv[5], imDiff, imSize, 0.f, 255.f) != EXIT_SUCCESS) {
+      return EXIT_FAILURE;
+    }
+
+    if (doBias) {
+      if (saveImage(argv[6], imBias, imSize, 0.f, 255.f) != EXIT_SUCCESS) {
+        return EXIT_FAILURE;
+      }
+
+      if (saveImage(argv[7], imDiffBias, imSize, 0.f, 255.f) != EXIT_SUCCESS) {
+        return EXIT_FAILURE;
+      }
+    }
+    if (verbose) {
+      cout << "done." << endl;
+    }
   }
 
   //! Exit the Main Function

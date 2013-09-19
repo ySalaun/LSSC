@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.1415926-2.4-1.40.13 (MiKTeX 2.9 64-bit) (preloaded format=pdflatex 2013.7.11)  17 SEP 2013 11:31
+This is pdfTeX, Version 3.1415926-2.4-1.40.13 (MiKTeX 2.9 64-bit) (preloaded format=pdflatex 2013.7.11)  19 SEP 2013 11:00
 entering extended mode
 **LSSC_IPOL.tex
 (C:\Users\Yohann\Documents\GitHub\LSSC\LSSC_IPOL_article\LSSC_IPOL.tex
@@ -547,32 +547,32 @@ Underfull \hbox (badness 10000) in paragraph at lines 439--440
  []
 
 
-Underfull \hbox (badness 10000) detected at line 482
+Underfull \hbox (badness 10000) detected at line 483
 [][]
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 465--483
+Underfull \hbox (badness 10000) in paragraph at lines 465--484
 
  []
 
 [10]
-Underfull \hbox (badness 10000) in paragraph at lines 486--487
+Underfull \hbox (badness 10000) in paragraph at lines 487--488
 
  []
 
 
-Underfull \hbox (badness 10000) detected at line 514
+Underfull \hbox (badness 10000) detected at line 515
 [][]
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 488--515
+Underfull \hbox (badness 10000) in paragraph at lines 489--516
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 488--515
+Underfull \hbox (badness 10000) in paragraph at lines 489--516
 
  []
 
@@ -587,7 +587,7 @@ Missing character: There is no â in font cmr12!
 Missing character: There is no € in font cmr12!
 Missing character: There is no “ in font cmr12!
 
-Underfull \hbox (badness 1132) in paragraph at lines 568--573
+Underfull \hbox (badness 1132) in paragraph at lines 569--574
 []\OT1/cmr/m/n/12 S. Mal-lat and Z. Zhang \OT1/cmr/m/it/12 Match-ing pur-suit i
 n a time-fre-quency dic-tio-nary\OT1/cmr/m/n/12 . IEEE T. SP,
  []
@@ -604,19 +604,19 @@ Missing character: There is no “ in font cmr12!
 Missing character: There is no â in font cmr12!
 Missing character: There is no € in font cmr12!
 Missing character: There is no “ in font cmr12!
-Package atveryend Info: Empty hook `BeforeClearDocument' on input line 619.
+Package atveryend Info: Empty hook `BeforeClearDocument' on input line 620.
 [12]
-Package atveryend Info: Empty hook `AfterLastShipout' on input line 619.
+Package atveryend Info: Empty hook `AfterLastShipout' on input line 620.
  (C:\Users\Yohann\Documents\GitHub\LSSC\LSSC_IPOL_article\LSSC_IPOL.aux)
-Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 619.
-Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 619.
+Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 620.
+Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 620.
 Package rerunfilecheck Info: File `LSSC_IPOL.out' has not changed.
 (rerunfilecheck)             Checksum: F3A104A726486C7F4D196794BD6D4199;908.
 
 
 LaTeX Font Warning: Some font shapes were not available, defaults substituted.
 
-Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 619.
+Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 620.
  ) 
 Here is how much of TeX's memory you used:
  8194 strings out of 493921
@@ -649,7 +649,7 @@ les/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmtt10.pfb><C:/Program Files/MiKT
 eX 2.9/fonts/type1/public/amsfonts/cm/cmtt8.pfb><C:/Program Files/MiKTeX 2.9/fo
 nts/type1/public/amsfonts/symbols/msam10.pfb><C:/Program Files/MiKTeX 2.9/fonts
 /type1/public/amsfonts/symbols/msbm10.pfb>
-Output written on LSSC_IPOL.pdf (12 pages, 332830 bytes).
+Output written on LSSC_IPOL.pdf (12 pages, 332974 bytes).
 PDF statistics:
  280 PDF objects out of 1000 (max. 8388607)
  56 named destinations out of 1000 (max. 500000)
