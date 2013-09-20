@@ -75,7 +75,13 @@ void trainL1(
         cout << alpha[n] << " " ;
       }
       cout << endl;
+      cout << "-------------------------------------" << endl;
+      for(unsigned int n = 0; sP < k; n++){
+        cout << patch[n] << " " ;
+      }
+      cout << endl;
     }
+
     A.addXYt(alpha, alpha);
     B.addXYt(patch, alpha);
 
@@ -154,13 +160,11 @@ void computeLars(
 
   //! active indexes mapping
   vector<int> A(k, -1);
-  
-  //! inactive indexes mapping
-  vector<unsigned int> iA(k, 1); // TODO: si t'aimes pas le nom, j'ai aussi hésité avec cA pour complémentaire... bref....
 
   //! most correlated element
   vector<float> correlation;
   p_dict.productAtx(p_patch, correlation);
+
   float C = fabs(correlation[0]);
   unsigned int currentIndex = 0;
   for (unsigned int n = 1; n < correlation.size(); n++) {
@@ -183,17 +187,23 @@ void computeLars(
 
     // TODO: debug mode
     if(p_params.verbose && p_params.debug) {
-      cout << "-- " << i + 1 << "-th iteration, the current index is: " << currentIndex << endl;
+      cout << "-- " << i + 1 << "-th iteration,";
+      if(currentIndex == -1){
+        cout << " there is no current index" << endl;
+      }
+      else{
+        cout << " the current index is: " << currentIndex << endl;
+      }
+       
     }
 
     //! NEW ATOM
     if (newAtom) {
       display("-- new atom", p_params);
       A[i] = currentIndex;
-      iA[currentIndex] = 0;
       Ga.copyCol(G , currentIndex, i);
       Gs.copyRow(Ga, currentIndex, i);
-      Gs.symmetrizeUpperPart(i);
+      Gs.symmetrizeUpperPart(i+1);
       updateGram(invGs, Gs, i);
     }
 
@@ -210,7 +220,7 @@ void computeLars(
     //! compute direction vector
     //! u = invGs * sgn
     vector<float> u;
-    invGs.productAx(sgn, u, i + 1);
+    invGs.productAx(sgn, u, i + 1, i + 1);
 
     //! STEP
     display("-- compute step: ", p_params, p_params.debug);
@@ -226,15 +236,15 @@ void computeLars(
       cout << "current maximum of correlation is: " << C << endl;
       for(unsigned int j = 0; j < k; j++){
         // inactive indexes correlation should be lower than the max of correlation
-        if(iA[j] == 1 && fabs(correlation[j]) > C){
+        if(o_alpha[j] == 0 && j != currentIndex && fabs(correlation[j]) > C){
           cout << "ERROR: wrong correlation for non active index, |c(" << j << ")| = " << fabs(correlation[j]) << " > " << C << endl;
         }
         // active indexes should reach the max of correlation
-        else if(iA[j] == 0 &&  fabs(correlation[j]) != C){
+        else if((o_alpha[j] != 0 || j == currentIndex) &&  fabs(fabs(correlation[j]) - C) > 0.001){ //TODO issue of equality....
           cout << "ERROR: wrong correlation for active index, |c(A[" << j << "])| = " << fabs(correlation[j]) << " != " << C << endl;
         }
         // TODO: what to do when 2 coefficients have the same initial correlation ??
-        else if(iA[j] == 1 && fabs(correlation[j]) == C){
+        else if(o_alpha[j] == 0 && j != currentIndex && fabs(correlation[j]) == C){
           cout << "BEWARE: the inactive index " << j << " has reached the maximum of correlation" << endl;
         }
       }
@@ -242,10 +252,10 @@ void computeLars(
 
     //! Compute Gamma
     vector<float> GaU;
-    Ga.productAx(u, GaU, i + 1);
-
+    Ga.productAx(u, GaU, i + 1, -1); 
+    
     for (unsigned int j = 0; j < k; j++) {
-      if (iA[j] == 0) {
+      if (o_alpha[j] != 0 || j == currentIndex) {
         continue;
       }
 
@@ -278,7 +288,7 @@ void computeLars(
       const float ratio = -o_alpha[A[j]] / u[j];
       if (ratio > 0.f && ratio < stepDownDate) {
         stepDownDate  = ratio;
-        downDateIndex = A[j];
+        downDateIndex = j;
       }
     }
 
@@ -298,17 +308,12 @@ void computeLars(
     const float c     = normPatch - lambda;
     const float delta = b * b - a * c;
     float stepMax     = (delta > 0.f ? std::min((b - sqrtf(delta)) / a, C) : p_params.infinity);
-    // TODO: this condition should not appear + stepMax has to be const
-    if(stepMax < 0){
-      cout << "ERROR: stepMax should be positive without this condition" << endl;
-      stepMax = C;
-    }
 
     //! FINAL STEP and BREAK
     // TODO: debug mode
     if (p_params.debug) {
       cout << "gamma: " << gamma << " downdate step: " << stepDownDate << " step max: " << stepMax << endl;
-      cout << "current index: " << currentIndex << " with correlation: " << correlation[currentIndex] << " downdate index: " << downDateIndex << endl;
+      cout << "new current index: " << currentIndex << " with correlation: " << correlation[currentIndex] << " downdate index: " << downDateIndex << endl;
     }
     gamma = std::min(std::min(gamma, stepDownDate), stepMax);
     // break if the step is too high
@@ -316,9 +321,7 @@ void computeLars(
       display(" the step is too high", p_params);
       break;
     }
-    if (p_params.debug) {
-      display(gamma, p_params);
-    }
+
     for (unsigned int j = 0; j <= i ; j++) {
       o_alpha[A[j]]  += gamma * u  [j];
     }
@@ -336,10 +339,14 @@ void computeLars(
     }
     if (fabs(gamma - stepDownDate) < p_params.epsilon) {
       display("-- downdate Gram matrices", p_params);
+      if(p_params.verbose){
+        cout << "for index " << downDateIndex << endl;
+      }
       downdateGram(invGs, Gs, Ga, i, downDateIndex);
-      A      [downDateIndex] = -1;
-      o_alpha[downDateIndex] = 0;
-      newAtom                = false;
+      A      [downDateIndex]    = -1;
+      o_alpha[A[downDateIndex]] = 0;
+      newAtom                   = false;
+      currentIndex              = -1;
       i--;
     }
     else {
@@ -372,16 +379,9 @@ void updateGram(
     vector<float> iRow;
     i_Gs.getRow(iRow, p_iter, p_iter);
 
-    unsigned int a,b;
-    i_Gs.getSize(a,b);
-    cout << "-------------------------------------------" << endl;
-    cout << a << "/" << b << endl;
-    cout << p_iter << endl;
-    cout << iRow.size() << endl;
-
     //! u = Gs^-1 Gs[i-th row]
     vector<float> u;
-    io_invGs.productAx(iRow, u, p_iter);
+    io_invGs.productAx(iRow, u, p_iter, p_iter);
 
     //! sigma = 1/(Gs_ii - u. Gs[i-th row])
     float uGs;
@@ -410,6 +410,7 @@ void updateGram(
 
 //! Downdate the inverse of the Gram matrix
 // TODO Marc : à valider en test réel (algo correspondant)
+// TODO issue ==> to debug, after downdate, the correlation is not good !!
 void downdateGram(
   Matrix &io_invGs,
   Matrix &io_Gs,
@@ -422,21 +423,22 @@ void downdateGram(
 
   //! u = Gs^-1[critInd-th row]\{Gs^-1_critInd,critInd}
   vector<float> u;
-  io_invGs.getRow(u, p_critIndex, p_iter);
+  io_invGs.getRow(u, p_critIndex, p_iter+1);
   u.erase(u.begin() + p_critIndex);
 
   //! delete critInd-th row and critInd-th column
-  io_Gs   .removeRowCol(p_critIndex, p_critIndex, p_iter, p_iter);
-  io_invGs.removeRowCol(p_critIndex, p_critIndex, p_iter, p_iter);
+  io_Gs   .removeRowCol(p_critIndex, p_critIndex, p_iter+1, p_iter+1);
+  io_invGs.removeRowCol(p_critIndex, p_critIndex, p_iter+1, p_iter+1);
 
   //! delete the critInd-th column
-  io_Ga   .removeRowCol(p_iter + 1 , p_critIndex, p_iter, p_iter);
+  io_Ga   .removeRowCol(-1 , p_critIndex, -1, p_iter+1);
 
   //! Gs^-1 = Gs^-1 - sigma u u^t
   vector<float> v(p_iter - 1);
   for (unsigned int i = 0; i < p_iter - 1; i++) {
     v[i] = -sigma * u[i];
   }
+
   io_invGs.addXYt(u, v, p_iter - 1);
 }
 

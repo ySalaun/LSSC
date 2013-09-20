@@ -81,7 +81,7 @@ int argc
   }
 
   // TEST PART
-  bool test = false;
+  bool test = true;
   if(test){
     bool testFailed = false;
     float epsilon = 0.005;
@@ -113,6 +113,14 @@ int argc
       return EXIT_FAILURE;
     }
 
+    int n = 5;
+    cout << "--------------------------" << endl;
+    display(G, n);
+    G.removeRowCol(1,0,n,n);
+    cout << "--------------------------" << endl;
+    display(G, n);
+    cout << "--------------------------" << endl;
+    
     // Test of update Gram matrix
     epsilon = 0.05;
 

@@ -125,20 +125,22 @@ public :
     Matrix const& i_B);
 
   //! Apply the product y = M * x, where M is the current matrix
-  //! if p_max > -1, the product will be done only for the p_iMax x p_iMax submatrice
+  //! if p_max > -1, the product will be done only for the p_jMax x p_iMax submatrice
   //! and the p_iMax subvector.
   void productAx(
     std::vector<float> const& i_x,
     std::vector<float> &o_y,
-    const int p_iMax = -1) const;
+    const int p_iMax = -1,
+    const int p_jMax = -1) const;
 
   //! Apply the product y = Mt * x, where M is the current matrix
-  //! if p_max > -1, the product will be done only for the p_iMax x p_iMax submatrice
+  //! if p_max > -1, the product will be done only for the p_iMax x p_jMax submatrice
   //! and the p_iMax subvector.
   void productAtx(
     std::vector<float> const& i_x,
     std::vector<float> &o_y,
-    const int p_iMax = -1) const;
+    const int p_iMax = -1,
+    const int p_jMax = -1) const;
 
   //! Compute A = A + xy' where y' is the transpose of the vector y.
   //! if p_iMax > -1, then the addition will be only done for (i,j) < (p_iMax, p_iMax).

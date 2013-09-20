@@ -299,7 +299,7 @@ void Matrix::symmetrizeUpperPart(
     const float* uM = &m_mat[i * m_col];
     float* dM       = &m_mat[i];
 
-    for (unsigned int j = i + 1; j < p_rowMax; j++) {
+    for (unsigned int j = 0; j < i; j++) {
       dM[j * m_row] = uM[j];
     }
   }
@@ -449,7 +449,8 @@ void Matrix::dotProduct(
 void Matrix::productAx(
   std::vector<float> const& i_x,
   std::vector<float> &o_y,
-  const int p_iMax) const {
+  const int p_iMax,
+  const int p_jMax) const {
 
   //! Initialization
   unsigned int m = m_row;
@@ -457,17 +458,25 @@ void Matrix::productAx(
 
   //! Check size
   if (p_iMax > -1){
-    if(p_iMax > (int) m || p_iMax > (int) n || p_iMax > (int) i_x.size()){
+    if(p_iMax > (int) n || p_iMax > (int) i_x.size()){
       cerr << "productAx - error : problem of size, p_iMax is too large for the matrix/vector sizes." << endl;
       return;
     }
-    m = p_iMax;
     n = p_iMax;
   }
   else if (n != i_x.size()) {
     cerr << "productAx - error : size of matrix do not correspond." << endl;
     return;
   }
+
+  if (p_jMax > -1){
+    if(p_jMax > (int) m ){
+      cerr << "productAx - error : problem of size, p_jMax is too large for the matrix/vector sizes." << endl;
+      return;
+    }
+    m = p_jMax;
+  }
+
 
   //! Initialization
   if (o_y.size() < m) {
@@ -493,7 +502,8 @@ void Matrix::productAx(
 void Matrix::productAtx(
   std::vector<float> const& i_x,
   std::vector<float> &o_y,
-  const int p_iMax) const {
+  const int p_iMax,
+  const int p_jMax) const {
 
   //! Initialization
   unsigned int m = m_row;
@@ -501,16 +511,23 @@ void Matrix::productAtx(
 
   //! Check size
   if (p_iMax > -1){
-    if(p_iMax > (int) m || p_iMax > (int) n || p_iMax > (int) i_x.size()){
+    if(p_iMax > (int) m || p_iMax > (int) i_x.size()){
       cerr << "productAx - error : problem of size, p_iMax is too large for the matrix/vector sizes." << endl;
       return;
     }
     m = p_iMax;
-    n = p_iMax;
   }
   else if (m != i_x.size()) {
     cerr << "productAx - error : size of matrix do not correspond." << endl;
     return;
+  }
+
+  if (p_jMax > -1){
+    if(p_jMax > (int) n ){
+      cerr << "productAx - error : problem of size, p_jMax is too large for the matrix/vector sizes." << endl;
+      return;
+    }
+    n = p_jMax;
   }
 
   //! Initialization
@@ -580,8 +597,8 @@ void Matrix::removeRowCol(
   const int p_jMax){
 
   //! Initializations
-  const unsigned int m = (p_iMax > -1 ? std::min(p_iMax + 1, (int) m_row - 1) : m_row - 1);
-  const unsigned int n = (p_jMax > -1 ? std::min(p_jMax + 1, (int) m_col - 1) : m_col - 1);
+  const unsigned int m = (p_iMax > -1 ? std::min(p_iMax - 1, (int) m_row - 1) : m_row - 1);
+  const unsigned int n = (p_jMax > -1 ? std::min(p_jMax - 1, (int) m_col - 1) : m_col - 1);
 
   //! Check sizes
   if (p_iMax > (int) m_row || p_jMax > (int) m_col) {
@@ -594,22 +611,26 @@ void Matrix::removeRowCol(
   }
 
   //! Delete row
-  for (unsigned int i = p_row; i < m; i++) {
-    float* iM1       = &m_mat[ i      * m_col];
-    const float* iM2 = &m_mat[(i + 1) * m_col];
+  if(p_row != -1){
+    for (unsigned int i = p_row; i < m; i++) {
+      float* iM1       = &m_mat[ i      * m_col];
+      const float* iM2 = &m_mat[(i + 1) * m_col];
 
-    for (unsigned int j = 0; j < n; j++) {
-      iM1[j] = iM2[j];
+      for (unsigned int j = 0; j < n + 1; j++) {
+        iM1[j] = iM2[j];
+      }
     }
   }
 
   //! Delete col
-  for (unsigned int i = 0; i < m; i++) {
-    float* iM1       = &m_mat[i * m_col + p_col    ];
-    const float* iM2 = &m_mat[i * m_col + p_col + 1];
+  if(p_col != -1){
+    for (unsigned int i = 0; i < m + 1; i++) {
+      float* iM1       = &m_mat[i * m_col + p_col    ];
+      const float* iM2 = &m_mat[i * m_col + p_col + 1];
 
-    for (unsigned int j = 0; j < n - p_col; j++) {
-      iM1[j] = iM2[j];
+      for (unsigned int j = 0; j < n - p_col; j++) {
+        iM1[j] = iM2[j];
+      }
     }
   }
 }
