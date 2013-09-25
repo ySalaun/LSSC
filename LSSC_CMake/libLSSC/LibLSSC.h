@@ -78,8 +78,9 @@ void computeLars(
 /**
 * @brief Update the inverse of the Gram matrix.
 *
-* @param io_invGs : Gs^{-1}. Will be updated;
-* @param i_Gs : Gram matrix;
+* @param io_invGs : Gs^{-1} of size p_iter \times p_iter. Will be updated
+*       of size p_iter+1 \times p_iter+1.
+* @param i_Gs : Gram matrix of size p_iter+1 \times p_iter+1
 * @param p_iter : current index.
 *
 * @return none.
@@ -92,7 +93,8 @@ void updateGram(
 /**
 * @brief  Downdate the inverse of the Gram matrix
 *
-* @param io_invGs : Gs^{-1}. Will be downdated;
+* @param io_invGs : Gs^{-1}. Will be downdated. Gs of size p_iter+1 \times p_iter+1, will
+*       be of size p_iter \times p_iter;
 * @param io_Gs : Gram matrix. Will be downdated;
 * @param io_Ga : pseudo-Gram matrix. Will be downdated;
 * @param p_iter : current index;

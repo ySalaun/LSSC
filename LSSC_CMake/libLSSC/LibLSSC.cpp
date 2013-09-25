@@ -166,7 +166,7 @@ void computeLars(
   p_dict.productAtx(p_patch, correlation);
 
   float C = fabs(correlation[0]);
-  unsigned int currentIndex = 0;
+  int currentIndex = 0;
   for (unsigned int n = 1; n < correlation.size(); n++) {
     if (fabs(correlation[n]) > C) {
       C = fabs(correlation[n]);
@@ -194,7 +194,7 @@ void computeLars(
       else{
         cout << " the current index is: " << currentIndex << endl;
       }
-       
+
     }
 
     //! NEW ATOM
@@ -234,7 +234,7 @@ void computeLars(
     //  and if all the active indexes have the same correlation
     if (p_params.debug) {
       cout << "current maximum of correlation is: " << C << endl;
-      for(unsigned int j = 0; j < k; j++){
+      for(int j = 0; j < (int) k; j++){
         // inactive indexes correlation should be lower than the max of correlation
         if(o_alpha[j] == 0 && j != currentIndex && fabs(correlation[j]) > C){
           cout << "ERROR: wrong correlation for non active index, |c(" << j << ")| = " << fabs(correlation[j]) << " > " << C << endl;
@@ -252,10 +252,10 @@ void computeLars(
 
     //! Compute Gamma
     vector<float> GaU;
-    Ga.productAx(u, GaU, i + 1, -1); 
-    
+    Ga.productAx(u, GaU, i + 1, -1);
+
     for (unsigned int j = 0; j < k; j++) {
-      if (o_alpha[j] != 0 || j == currentIndex) {
+      if (o_alpha[j] != 0 || j == (unsigned int) currentIndex) {
         continue;
       }
 
@@ -331,7 +331,7 @@ void computeLars(
     }
 
     normPatch += a * gamma * gamma - 2 * b * gamma; // TODO Marc : il faudra peut être passer normPatch, gamma, a, b, et c en double
-    if (fabs(gamma)              < p_params.epsilon || 
+    if (fabs(gamma)              < p_params.epsilon ||
         fabs(gamma - stepMax)    < p_params.epsilon ||
         normPatch                < p_params.epsilon ||
         fabs(normPatch - lambda) < p_params.epsilon) {
@@ -358,7 +358,7 @@ void computeLars(
 
 
 //! Update the inverse of the Gram matrix
-// TODO Marc : à valider en test réel (algo correspondant)
+// TODO Marc : validé !!
 void updateGram(
   Matrix &io_invGs,
   Matrix const& i_Gs,
@@ -409,7 +409,7 @@ void updateGram(
 }
 
 //! Downdate the inverse of the Gram matrix
-// TODO Marc : à valider en test réel (algo correspondant)
+// TODO Marc : validé !!!
 // TODO issue ==> to debug, after downdate, the correlation is not good !!
 void downdateGram(
   Matrix &io_invGs,
@@ -434,12 +434,12 @@ void downdateGram(
   io_Ga   .removeRowCol(-1 , p_critIndex, -1, p_iter+1);
 
   //! Gs^-1 = Gs^-1 - sigma u u^t
-  vector<float> v(p_iter - 1);
-  for (unsigned int i = 0; i < p_iter - 1; i++) {
+  vector<float> v(p_iter);
+  for (unsigned int i = 0; i < p_iter; i++) {
     v[i] = -sigma * u[i];
   }
 
-  io_invGs.addXYt(u, v, p_iter - 1);
+  io_invGs.addXYt(u, v, p_iter);
 }
 
 

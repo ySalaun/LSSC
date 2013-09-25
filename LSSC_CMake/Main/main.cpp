@@ -47,6 +47,67 @@ int argc
     return EXIT_FAILURE;
   }
 
+  /*Matrix A(3, 3);
+  A(0, 0) = 1;
+  A(0, 1) = sqrt(2);
+  A(0, 2) = 3;
+  A(1, 0) = sqrt(2);
+  A(1, 1) = 0;
+  A(1, 2) = 1;
+  A(2, 0) = 3;
+  A(2, 1) = 1;
+  A(2, 2) = sqrt(2);
+  display(A, 3);
+
+  Matrix invA(3, 3);
+
+  for (unsigned int i = 0; i < 3; i++) {
+    updateGram(invA, A, i);
+
+    cout << endl;
+    display(invA, i+1);
+    cout << endl;
+  }
+
+  cout << "-----------------------" << endl;
+
+  Matrix Gs(3, 3);
+  Matrix Ga(3, 3);
+  for (unsigned int i = 3; i > 2; i--) {
+    Ga = A;
+    downdateGram(invA, Ga, Gs, i-1, 1);
+
+    cout << endl;
+    //display(invA, i-1);
+    //Ga.removeRowCol(1, 1, i, i);
+    cout << "Ga = " << endl;
+    display(Ga, i-1);
+    cout << endl;
+    cout << "invA = " << endl;
+    display(invA, i-1);
+    cout << endl;
+    cout << 3.f / (sqrt(2) - 9.f) << ", " << sqrt(2) / (sqrt(2) - 9.f) << endl;
+    Gs.productAB(invA, Ga, i-1);
+    cout << endl;
+    for (unsigned int p = 0; p < i-1; p++) {
+      for (unsigned int q = 0; q < i-1; q++) {
+        float sum = 0.f;
+        for (unsigned int k = 0; k < i-1; k++) {
+          sum += invA(p, k) * Ga(k, q);
+        }
+        cout << sum << " ";
+      }
+      cout << endl;
+    }
+
+
+    cout << endl;
+    display(Gs, i-1);
+    cout << endl;
+  }
+
+  return EXIT_SUCCESS;*/
+
   //! Variables initialization
   const float sigma = float(atof(argv[2]));
   const bool doBias = bool(atof(argv[8]) != 0);
@@ -113,37 +174,32 @@ int argc
       return EXIT_FAILURE;
     }
 
-    int n = 5;
-    cout << "--------------------------" << endl;
-    display(G, n);
-    G.removeRowCol(1,0,n,n);
-    cout << "--------------------------" << endl;
-    display(G, n);
-    cout << "--------------------------" << endl;
-    
     // Test of update Gram matrix
-    epsilon = 0.05;
+    epsilon = 0.000005;
 
     Matrix invG    (params.k, params.k);
     Matrix Id1     (params.k, params.k);
     Matrix Id2     (params.k, params.k);
+    Matrix Gs      (params.k, params.k);
+    Matrix Ga      (params.k, params.k);
 
-    for(unsigned int iter = 0; iter<params.k; iter++){
+    const unsigned int iterMax = 70;
+    for(unsigned int iter = 0; iter<iterMax; iter++){
       updateGram(invG, G, iter);
 
       Id1.productAB(G, invG, iter+1);
       Id2.productAB(invG, G, iter+1);
-    
+
       for(unsigned int i=0; i<iter+1; i++){
         for(unsigned int j=0; j<iter+1; j++){
           const float ref = (i==j)? 1.f : 0.f;
-        
+
           if(fabs(ref - Id1(i,j)) > epsilon){
             cout << "TEST ERROR: the updateGram function does not work" << endl;
             cout << "at " << iter << "-th iteration, G*invG(" << i << "," << j << ") = " << Id1(i,j) << " != " << ref << endl;
             testFailed = true;
           }
-        
+
           if(fabs(ref - Id2(i,j)) > epsilon){
             cout << "TEST ERROR: the updateGram function does not work" << endl;
             cout << "at " << iter << "-th iteration, invG*G(" << i << "," << j << ") = " << Id2(i,j) << " != " << ref << endl;
@@ -155,13 +211,13 @@ int argc
 
       for(unsigned int i=0; i<iter+1; i++){
         for(unsigned int j=0; j<i; j++){
-        
+
           if(fabs(G(i,j) - G(j,i)) > epsilon){
             cout << "TEST ERROR: Gram matrix is not symmetric" << endl;
             cout << "at " << iter << "-th iteration, G(" << i << "," << j << ") = " << G(i,j) << " != " << " G(" << j << "," << i << ") = " << G(j,i) << endl;
             testFailed = true;
           }
-        
+
           if(fabs(invG(i,j) - invG(j,i)) > epsilon){
             cout << "TEST ERROR: the updateGram function does not work, inverse of Gram matrix is not symmetric" << endl;
             cout << "at " << iter << "-th iteration, invG(" << i << "," << j << ") = " << invG(i,j) << " != " << " invG(" << j << "," << i << ") = " << invG(j,i) << endl;
@@ -170,9 +226,9 @@ int argc
 
         }
       }
-    
+
       if(testFailed){
-        cout << "-------------------------------" << endl;
+        /*cout << "-------------------------------" << endl;
         display(G, iter+1);
         cout << "-------------------------------" << endl;
         display(invG, iter+1);
@@ -180,7 +236,66 @@ int argc
         display(Id1, iter+1);
         cout << "-------------------------------" << endl;
         display(Id2, iter+1);
+        cout << "-------------------------------" << endl;*/
+        return EXIT_FAILURE;
+      }
+
+    }
+
+    cout << "------------------" << endl;
+
+    for(unsigned int iter = iterMax; iter>0; iter--){
+      downdateGram(invG, G, Ga, iter-1, 0);
+      Id1.productAB(G, invG, iter-1);
+      Id2.productAB(invG, G, iter-1);
+
+      for(unsigned int i=0; i<iter-1; i++){
+        for(unsigned int j=0; j<iter-1; j++){
+          const float ref = (i==j)? 1.f : 0.f;
+
+          if(fabs(ref - Id1(i,j)) > epsilon){
+            cout << "TEST ERROR: the downdateGram function does not work" << endl;
+            cout << "at " << iter << "-th iteration, G*invG(" << i << "," << j << ") = " << Id1(i,j) << " != " << ref << endl;
+            testFailed = true;
+          }
+
+          if(fabs(ref - Id2(i,j)) > epsilon){
+            cout << "TEST ERROR: the downdateGram function does not work" << endl;
+            cout << "at " << iter << "-th iteration, invG*G(" << i << "," << j << ") = " << Id2(i,j) << " != " << ref << endl;
+            testFailed = true;
+          }
+
+        }
+      }
+
+      for(unsigned int i=0; i<iter-1; i++){
+        for(unsigned int j=0; j<i; j++){
+
+          if(fabs(G(i,j) - G(j,i)) > epsilon){
+            cout << "TEST ERROR: Gram matrix is not symmetric" << endl;
+            cout << "at " << iter << "-th iteration, G(" << i << "," << j << ") = " << G(i,j) << " != " << " G(" << j << "," << i << ") = " << G(j,i) << endl;
+            testFailed = true;
+          }
+
+          if(fabs(invG(i,j) - invG(j,i)) > epsilon){
+            cout << "TEST ERROR: the downdateGram function does not work, inverse of Gram matrix is not symmetric" << endl;
+            cout << "at " << iter << "-th iteration, invG(" << i << "," << j << ") = " << invG(i,j) << " != " << " invG(" << j << "," << i << ") = " << invG(j,i) << endl;
+            testFailed = true;
+          }
+
+        }
+      }
+
+      if(testFailed){
+        /*cout << "-------------------------------" << endl;
+        display(G, iter+1);
         cout << "-------------------------------" << endl;
+        display(invG, iter+1);
+        cout << "-------------------------------" << endl;
+        display(Id1, iter+1);
+        cout << "-------------------------------" << endl;
+        display(Id2, iter+1);
+        cout << "-------------------------------" << endl;*/
         return EXIT_FAILURE;
       }
 

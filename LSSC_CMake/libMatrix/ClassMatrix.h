@@ -152,8 +152,8 @@ public :
   //! Remove the iMax first elements of the i-th row and the jMax first elements
   //! of the j-th column
   void removeRowCol(
-    const unsigned int p_row,
-    const unsigned int p_col,
+    const int p_row,
+    const int p_col,
     const int p_iMax = -1,
     const int p_jMax = -1);
 

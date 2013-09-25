@@ -358,6 +358,7 @@ void Matrix::productAB(
   //! Initialization
   const unsigned int m = (p_iMax > -1 ? p_iMax : i_A.m_row);
   const unsigned int n = (p_iMax > -1 ? p_iMax : i_B.m_col);
+  const unsigned int o = (p_iMax > -1 ? p_iMax : i_A.m_col);
   (*this).setSize(m, n);
 
   //! Do the product
@@ -366,14 +367,14 @@ void Matrix::productAB(
     float* iM       = &m_mat[i * m_col];
 
     for (unsigned int j = 0; j < m_col; j++) {
-      const float* iBt = &Bt.m_mat[j * i_B.m_row];
-      float sum = 0.f;
+      const float* iBt = &Bt.m_mat[j * Bt.m_col];
+      double sum = 0.f;
 
-      for (unsigned int k = 0; k < i_A.m_col; k++) {
-        sum += iA[k] * iBt[k];
+      for (unsigned int k = 0; k < o; k++) {
+        sum += (double) iA[k] * (double) iBt[k];
       }
 
-      iM[j] = sum;
+      iM[j] = (float) sum;
     }
   }
 }
@@ -403,14 +404,14 @@ void Matrix::productAtB(
     const float* iAt = &At.m_mat[i * At.m_col];
 
     for (unsigned int j = 0; j < m_col; j++) {
-      float sum = 0.f;
+      double sum = 0.f;
       const float* iBt = &Bt.m_mat[j * Bt.m_col];
 
       for (unsigned int k = 0; k < i_A.m_row; k++) {
-        sum += iAt[k] * iBt[k];
+        sum += (double) iAt[k] * (double) iBt[k];
       }
 
-      iM[j] = sum;
+      iM[j] = (float) sum;
     }
   }
 }
@@ -488,12 +489,15 @@ void Matrix::productAx(
     const float* iM = &m_mat[i * m_col];
     const float* ix = &i_x[0];
     float* oy       = &o_y[0];
-    float sum = 0.f;
+    //float sum = 0.f;
+    double sum = 0.l;
 
     for (unsigned int j = 0; j < n; j++) {
-      sum += iM[j] * ix[j];
+      //sum += iM[j] * ix[j];
+      sum += (double) iM[j] * (double) ix[j];
     }
-    oy[i] = sum;
+    //oy[i] = sum;
+    oy[i] = (float) sum;
   }
 }
 
@@ -591,8 +595,8 @@ void Matrix::addXYt(
 //! Remove the iMax first elements of the i-th row and the jMax first elements of the j-th column
 // TODO Marc : validé
 void Matrix::removeRowCol(
-  const unsigned int p_row,
-  const unsigned int p_col,
+  const int p_row,
+  const int p_col,
   const int p_iMax,
   const int p_jMax){
 
@@ -605,7 +609,7 @@ void Matrix::removeRowCol(
     cerr << "removeRowCol : Error - indexes are too big for the matrix" << endl;
     return;
   }
-  if (p_row > m || p_col > n) {
+  if (p_row > (int) m || p_col > (int) n) {
     cerr << "removeRowCol : Error - line or column number is too big for the matrix" << endl;
     return;
   }
