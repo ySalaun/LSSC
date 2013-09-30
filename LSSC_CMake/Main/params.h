@@ -73,7 +73,7 @@ struct Parameters{
     infinity        = std::numeric_limits<float>::max();
     epsilon         = 1e-15f;  // TODO: change ? float / double ? 1e-15 or another number ?
 
-    debug           = true;
+    debug           = false;
   }
 };
 

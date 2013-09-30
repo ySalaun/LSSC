@@ -141,17 +141,17 @@ int argc
     }
   }
 
-  // TEST PART
-  bool test = true;
+  //! TEST PART
+  bool test = false;
   if(test){
     bool testFailed = false;
     float epsilon = 0.005;
 
-    // UPDATE GRAM
+    //! UPDATE GRAM
     Matrix G    (params.k, params.k);
     G.productAtB(dict, dict);
 
-    // Test with random values if G = D^t * D
+    //! Test with random values if G = D^t * D
     srand((unsigned int)(time(time_t(NULL))));
 
     for(unsigned int test = 0; test < 25; test++){
@@ -243,9 +243,9 @@ int argc
     }
 
     cout << "------------------" << endl;
-
+    vector<int> A(iterMax +1, 0);
     for(unsigned int iter = iterMax; iter>0; iter--){
-      downdateGram(invG, G, Ga, iter-1, 0);
+      downdateGram(invG, G, Ga, A, iter-1, 0);
       Id1.productAB(G, invG, iter-1);
       Id2.productAB(invG, G, iter-1);
 

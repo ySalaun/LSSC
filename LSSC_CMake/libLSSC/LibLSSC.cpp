@@ -19,6 +19,9 @@
 #include "LibLSSC.h"
 #include "utilities.h"
 
+// TODO: temp for debug
+#include <unistd.h>
+
 using namespace std;
 
 #ifdef __linux__
@@ -70,17 +73,17 @@ void trainL1(
     vector<float> alpha;
     computeLars(io_dict, patch, p_params, alpha);
     // TODO debug mode
-    if (p_params.debug) {
+    /*if (p_params.debug) {
       for(unsigned int n = 0; n < k; n++){
         cout << alpha[n] << " " ;
       }
       cout << endl;
       cout << "-------------------------------------" << endl;
-      for(unsigned int n = 0; sP < k; n++){
+      /*for(unsigned int n = 0; sP < k; n++){
         cout << patch[n] << " " ;
       }
       cout << endl;
-    }
+    }*/
 
     A.addXYt(alpha, alpha);
     B.addXYt(patch, alpha);
@@ -232,15 +235,19 @@ void computeLars(
 
     // TODO: debug to test if c(A[0]) is really the max (should be)
     //  and if all the active indexes have the same correlation
+    // TODO: issue seems to come from the fact that the precision is too low....
     if (p_params.debug) {
+      bool error = false;
       cout << "current maximum of correlation is: " << C << endl;
       for(int j = 0; j < (int) k; j++){
         // inactive indexes correlation should be lower than the max of correlation
-        if(o_alpha[j] == 0 && j != currentIndex && fabs(correlation[j]) > C){
+        if(o_alpha[j] == 0 && j != currentIndex && fabs(correlation[j]) > C && fabs(fabs(correlation[j]) - C) > p_params.epsilon){
+          error = true;
           cout << "ERROR: wrong correlation for non active index, |c(" << j << ")| = " << fabs(correlation[j]) << " > " << C << endl;
         }
         // active indexes should reach the max of correlation
         else if((o_alpha[j] != 0 || j == currentIndex) &&  fabs(fabs(correlation[j]) - C) > 0.001){ //TODO issue of equality....
+          error = true;
           cout << "ERROR: wrong correlation for active index, |c(A[" << j << "])| = " << fabs(correlation[j]) << " != " << C << endl;
         }
         // TODO: what to do when 2 coefficients have the same initial correlation ??
@@ -248,6 +255,9 @@ void computeLars(
           cout << "BEWARE: the inactive index " << j << " has reached the maximum of correlation" << endl;
         }
       }
+      /*if(error){
+        sleep(360);
+      }*/
     }
 
     //! Compute Gamma
@@ -314,6 +324,11 @@ void computeLars(
     if (p_params.debug) {
       cout << "gamma: " << gamma << " downdate step: " << stepDownDate << " step max: " << stepMax << endl;
       cout << "new current index: " << currentIndex << " with correlation: " << correlation[currentIndex] << " downdate index: " << downDateIndex << endl;
+      cout << "current code is (in active index order): ";
+      for (unsigned int j = 0; j <= i; j++) {
+        cout << o_alpha[A[j]] << " ";
+      }
+      cout << endl;
     }
     gamma = std::min(std::min(gamma, stepDownDate), stepMax);
     // break if the step is too high
@@ -324,6 +339,14 @@ void computeLars(
 
     for (unsigned int j = 0; j <= i ; j++) {
       o_alpha[A[j]]  += gamma * u  [j];
+    }
+
+    if (p_params.debug) {
+      cout << "after step, current code is (in active index order): ";
+      for (unsigned int j = 0; j <= i; j++) {
+        cout << o_alpha[A[j]] << " ";
+      }
+      cout << endl;
     }
 
     for(unsigned int j = 0; j < k; j++){
@@ -340,11 +363,10 @@ void computeLars(
     if (fabs(gamma - stepDownDate) < p_params.epsilon) {
       display("-- downdate Gram matrices", p_params);
       if(p_params.verbose){
-        cout << "for index " << downDateIndex << endl;
+        cout << "for index " << A[downDateIndex] << endl;
       }
-      downdateGram(invGs, Gs, Ga, i, downDateIndex);
-      A      [downDateIndex]    = -1;
-      o_alpha[A[downDateIndex]] = 0;
+      //o_alpha[A[downDateIndex]] = 0; // TODO: seems to be non-necessary ==> it is this that causes the downdate
+      downdateGram(invGs, Gs, Ga, A, i, downDateIndex);
       newAtom                   = false;
       currentIndex              = -1;
       i--;
@@ -411,10 +433,12 @@ void updateGram(
 //! Downdate the inverse of the Gram matrix
 // TODO Marc : validé !!!
 // TODO issue ==> to debug, after downdate, the correlation is not good !!
+// TODO add change to A to the latex file
 void downdateGram(
   Matrix &io_invGs,
   Matrix &io_Gs,
   Matrix &io_Ga,
+  vector<int> & io_A,
   const unsigned int p_iter,
   const unsigned int p_critIndex){
 
@@ -432,6 +456,13 @@ void downdateGram(
 
   //! delete the critInd-th column
   io_Ga   .removeRowCol(-1 , p_critIndex, -1, p_iter+1);
+
+  //! delete the critInd-th element of the active indexes
+  // TODO keep or not ?
+  for (unsigned int i = p_critIndex; i < p_iter; i++) {
+    io_A[i] = io_A[i+1];
+  }
+  io_A[p_iter] = -1;
 
   //! Gs^-1 = Gs^-1 - sigma u u^t
   vector<float> v(p_iter);

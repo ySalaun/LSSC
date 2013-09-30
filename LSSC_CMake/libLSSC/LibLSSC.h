@@ -97,6 +97,7 @@ void updateGram(
 *       be of size p_iter \times p_iter;
 * @param io_Gs : Gram matrix. Will be downdated;
 * @param io_Ga : pseudo-Gram matrix. Will be downdated;
+* @param io_A  : active index list. Will be downdated;
 * @param p_iter : current index;
 * @param p_critIndex : critical index that shows where the downdate has to be done.
 *
@@ -106,6 +107,7 @@ void downdateGram(
   Matrix &io_invGs,
   Matrix &io_Gs,
   Matrix &io_Ga,
+  vector<int> & io_A,
   const unsigned int p_iter,
   const unsigned int p_critIndex);
 

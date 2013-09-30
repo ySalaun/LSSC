@@ -38,6 +38,7 @@
 #ifdef _OPENMP
     #include <omp.h>
 #endif
+#include <unistd.h>
 
  using namespace std;
 
