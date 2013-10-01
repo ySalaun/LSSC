@@ -56,8 +56,8 @@ void trainL1(
 
   for (unsigned int n = 0; n < p_nPatch; n++) {
     vector<float> patch(m, 0.f);
-    const unsigned int i = iidPatches[n] / p_params.nRowPatches * sP;
-    const unsigned int j = iidPatches[n] % p_params.nRowPatches * sP;
+    const unsigned int i = iidPatches[n] / p_params.nColPatches;
+    const unsigned int j = iidPatches[n] % p_params.nColPatches;
     const float* iI      = &i_imNoisy[i * w + j];
     float* iP            = &patch[0];
 

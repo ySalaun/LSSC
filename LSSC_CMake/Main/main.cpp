@@ -304,12 +304,87 @@ int argc
   else{
     //! LSSC
     display("----------------------------------------------", params);
+
     display("PART 1 - LEARNING PART WITH LARS", params);
+    //! number of random patches for dictionary update
     unsigned nRandomPatches = 50;//unsigned(floor(.2 * params.nPatch));
+
+    //! dictionary training with LARS/update
     trainL1(dict, imNoisy, nRandomPatches, params);
 
     display("PART 2 - ORMP from KSVD", params);
-    // TODO
+
+    // TODO rename denoiseL0 inside libORMP
+    vector<float> denoi1(imNoisy.size(), 0.f);
+    vector<unsigned int> median(imNoisy.size(), 0);
+
+    //! size of patches
+    const unsigned int sP = params.sPatch;
+
+    //! write the picture into patch form
+    vector<double> i_X(params.nPatch * params.m);
+
+    for(unsigned int i = 0; i < params.nRowPatches; i++){
+      for(unsigned int j = 0; j < params.nColPatches; j++){
+        //! patch with top left corner im_noisy(i,j)
+        const float* iI = &imNoisy[i * params.w + j];
+        double* iP      = &i_X[(i * params.nColPatches + j) * params.m];
+
+        for (unsigned int p = 0; p < sP; p++) {
+          for (unsigned int q = 0; q < sP; q++) {
+            iP[p * sP + q] = (double) iI[p * params.w + q];
+          }
+        }
+      }
+    }
+
+    //! write the dictionary into vector form
+    vector<double> i_D(params.m * params.k);
+
+    for(unsigned int i = 0; i < params.m; i++){
+      for(unsigned int j = 0; j < params.k; j++){
+        i_D[i * params.k + j] = (double) dict(i, j);
+      }
+    }
+
+    //! denoised patch output
+    vector<vector<unsigned int> > o_indV;
+    vector<vector<double> > o_valV;
+
+    //! compute ORMP
+    computeORMP(i_X, i_D, o_indV, o_valV, params.epsORMP, params.nPatch, params.k, params.m);
+
+    //! denoise each patch separately
+    for(unsigned int i = 0; i < params.nRowPatches; i++){
+      for(unsigned int j = 0; j < params.nColPatches; j++){
+        const unsigned int numPatch = i * params.nColPatches + j;
+        vector<double> coeff        = o_valV[numPatch];
+        vector<unsigned int> code   = o_indV[numPatch];
+
+        //! patch with top left corner im_noisy(i,j)
+        double* iP      = &i_X[numPatch * params.m];
+
+        for (unsigned int p = 0; p < sP; p++) {
+          for (unsigned int q = 0; q < sP; q++) {
+            double denoisedPixel          = 0;
+            const unsigned int indexPatch = p * sP + q;
+            for(unsigned int r = 0; r < code.size(); r++){
+              denoisedPixel += coeff[r] * i_D[indexPatch * params.k + code[r]];
+            }
+            iP[indexPatch] = denoisedPixel;
+            denoi1[(i + p) * params.w + (j + q)] += denoisedPixel;
+            median[(i + p) * params.w + (j + q)] += 1;
+          }
+        }
+      }
+    }
+
+    //! merge dneoised patch information
+    for(unsigned int i = 0; i < params.nRowPatches; i++){
+      for(unsigned int j = 0; j < params.nColPatches; j++){
+        denoi1[i * params.w + j] /= min(float(median[i * params.w + j]), 1.f);
+      }
+    }
 
     display("PART 3 - CLUSTERING", params);
     // TODO
@@ -326,7 +401,7 @@ int argc
     for (unsigned c = 0; c < imSize.nChannels; c++) {
       for (unsigned i = 0; i < imSize.height; i++) {
         for (unsigned j = 0; j < imSize.width; j++) {
-          imFinal.push_back(imNoisy[0 * imSize.wh + i * imSize.width + j]);
+          imFinal.push_back(denoi1[0 * imSize.wh + i * imSize.width + j]);
           imDiff.push_back(imNoisy[0 * imSize.wh + i * imSize.width + j]);
           imBias.push_back(imNoisy[0 * imSize.wh + i * imSize.width + j]);
           imDiffBias.push_back(imNoisy[0 * imSize.wh + i * imSize.width + j]);

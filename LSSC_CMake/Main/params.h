@@ -26,6 +26,7 @@ struct Parameters{
   // Picture informations
   unsigned int w;           // width
   unsigned int h;           // height
+  unsigned int wh;          // number of pixels
 
   // Dictionnary informations
   unsigned int k;           // number of elements
@@ -43,6 +44,9 @@ struct Parameters{
   // Update algorithm
   unsigned updateIteration; // TODO: Mairal seems to have set it to 1 (and 5 in batch case <== ?)
 
+  // ORMP algorithm
+  double epsORMP;
+
   // Verbose option
   bool verbose;
 
@@ -56,17 +60,20 @@ struct Parameters{
   Parameters(int imH, int imW){
     h               = imH;
     w               = imW;
+    wh              = w*h;
 
     sPatch          = 9;
     m               = sPatch * sPatch;
     k               = 512;
-    nPatch          = w*h/m;
-    nRowPatches     = w/sPatch;
-    nColPatches     = h/sPatch;
+    nRowPatches     = h-sPatch+1;
+    nColPatches     = w-sPatch+1;
+    nPatch          = nRowPatches*nColPatches;
 
     reg             = 0; // TODO: compute the real value
 
     updateIteration = 1; // TODO Mairal used this parameter as default
+
+    epsORMP         = (double) 0.5;
 
     verbose         = true;
 
