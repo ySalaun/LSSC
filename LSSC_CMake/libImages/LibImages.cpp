@@ -21,6 +21,7 @@
 #include "mt19937ar.h"
 #ifdef __linux__
     #include "../libIO/io_png.h"
+    #include <unistd.h>
 #else
     #include "libIO/io_png.h"
 #endif
@@ -38,7 +39,6 @@
 #ifdef _OPENMP
     #include <omp.h>
 #endif
-#include <unistd.h>
 
  using namespace std;
 

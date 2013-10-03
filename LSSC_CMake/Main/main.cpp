@@ -256,7 +256,7 @@ void denoiseL0(
     {
         for(unsigned int j = 0; j < params.k; j++)
         {
-            i_D[i * params.k + j] = (double) i_dict(i, j);
+            i_D[j * params.m + i] = (double) i_dict(i, j);
         }
     }
 
@@ -287,7 +287,7 @@ void denoiseL0(
                     const unsigned int indexPatch = p * sP + q;
                     for(unsigned int r = 0; r < code.size(); r++)
                     {
-                        denoisedPixel += coeff[r] * i_D[indexPatch * params.k + code[r]];
+                        denoisedPixel += coeff[r] * i_D[code[r] * params.m + indexPatch];
                     }
                     iP[indexPatch] = denoisedPixel;
                     o_imDenoised[(i + p) * params.w + (j + q)] += denoisedPixel;
@@ -342,7 +342,7 @@ int main(
     //! Parameters
     // TODO remark, for now the pictures are considered to be B&W
     // TODO the parameters have to be smarter
-    Parameters params(imSize.height, imSize.width);
+    Parameters params(imSize.height, imSize.width, 1, sigma);
 
     //! read initial dictionary
     Matrix dict(params.m, params.k);
@@ -373,7 +373,7 @@ int main(
     unsigned nRandomPatches = 50;//unsigned(floor(.2 * params.nPatch));
 
     //! dictionary training with LARS/update
-    trainL1(dict, imNoisy, nRandomPatches, params);
+    //trainL1(dict, imNoisy, nRandomPatches, params);
 
     display("PART 2 - ORMP from KSVD", params);
 

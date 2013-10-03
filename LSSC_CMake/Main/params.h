@@ -27,6 +27,9 @@ struct Parameters{
   unsigned int w;           // width
   unsigned int h;           // height
   unsigned int wh;          // number of pixels
+  unsigned int chnls;       // number of channels
+
+  double sigma;             // noise s.d.
 
   // Dictionnary informations
   unsigned int k;           // number of elements
@@ -45,6 +48,7 @@ struct Parameters{
   unsigned updateIteration; // TODO: Mairal seems to have set it to 1 (and 5 in batch case <== ?)
 
   // ORMP algorithm
+  double C; // from KSV IPOL algo
   double epsORMP;
 
   // Verbose option
@@ -57,12 +61,21 @@ struct Parameters{
   // Debug
   bool debug;
 
-  Parameters(int imH, int imW){
+  Parameters(
+    unsigned int imH,
+    unsigned int imW,
+    unsigned int imC,
+    double s){
     h               = imH;
     w               = imW;
     wh              = w*h;
+    chnls           = imC;
 
-    sPatch          = 9;
+    sigma           = s;
+
+    // from KSVD IPOL
+    sPatch          =  (sigma * 255.0l <= 20 ? 5 :
+                       (sigma * 255.0l <= 60 ? 7 : 9)); 
     m               = sPatch * sPatch;
     k               = 512;
     nRowPatches     = h-sPatch+1;
@@ -73,7 +86,10 @@ struct Parameters{
 
     updateIteration = 1; // TODO Mairal used this parameter as default
 
-    epsORMP         = (double) 0.5;
+
+    C               = (chnls == 1 ? (sPatch == 5 ? 1.2017729876383829 : (sPatch == 7 ? 1.1456550151825420 : 1.1139195378939404))					
+                                                                      : (sPatch == 5 ? 1.1182997771678573 : (sPatch == 7 ? 1.0849724948297015 : 1.0662877194412401)));
+    epsORMP         = ((double) (chnls * m)) * C * C * sigma * sigma;
 
     verbose         = true;
 

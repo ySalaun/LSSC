@@ -19,13 +19,11 @@
 #include "LibLSSC.h"
 #include "utilities.h"
 
-// TODO: temp for debug
-#include <unistd.h>
-
 using namespace std;
 
 #ifdef __linux__
 #include <math.h>
+#include <unistd.h>
 #endif
 
 //! train the algorithm with the L1 norm
