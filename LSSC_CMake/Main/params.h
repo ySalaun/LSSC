@@ -74,8 +74,8 @@ struct Parameters{
     sigma           = s;
 
     // from KSVD IPOL
-    sPatch          =  (sigma * 255.0l <= 20 ? 5 :
-                       (sigma * 255.0l <= 60 ? 7 : 9)); 
+    sPatch          =  (sigma  <= 20 ? 5 :
+                       (sigma  <= 60 ? 7 : 9)); 
     m               = sPatch * sPatch;
     k               = 512;
     nRowPatches     = h-sPatch+1;
@@ -89,7 +89,7 @@ struct Parameters{
 
     C               = (chnls == 1 ? (sPatch == 5 ? 1.2017729876383829 : (sPatch == 7 ? 1.1456550151825420 : 1.1139195378939404))					
                                                                       : (sPatch == 5 ? 1.1182997771678573 : (sPatch == 7 ? 1.0849724948297015 : 1.0662877194412401)));
-    epsORMP         = ((double) (chnls * m)) * C * C * sigma * sigma;
+    epsORMP         = ((double) (chnls * m)) * C * C * sigma / 255.l * sigma / 255.l;
 
     verbose         = true;
 

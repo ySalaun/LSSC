@@ -223,8 +223,6 @@ void denoiseL0(
   const Matrix& i_dict,
   const Parameters& params)
 {
-    vector<unsigned int> median(i_imNoisy.size(), 0);
-
     //! size of patches
     const unsigned int sP = params.sPatch;
 
@@ -250,11 +248,12 @@ void denoiseL0(
     }
 
     //! write the dictionary into vector form
+    //! beware, the dictionary used in the ORMP library is the transposed version of this one
     vector<double> i_D(params.m * params.k);
 
-    for(unsigned int i = 0; i < params.m; i++)
+    for(unsigned int j = 0; j < params.k; j++)
     {
-        for(unsigned int j = 0; j < params.k; j++)
+        for(unsigned int i = 0; i < params.m; i++)
         {
             i_D[j * params.m + i] = (double) i_dict(i, j);
         }
@@ -268,6 +267,8 @@ void denoiseL0(
     computeORMP(i_X, i_D, o_indV, o_valV, params.epsORMP, params.nPatch, params.k, params.m);
 
     //! denoise each patch separately
+    vector<unsigned int> median(i_imNoisy.size(), 0);
+    
     for(unsigned int i = 0; i < params.nRowPatches; i++)
     {
         for(unsigned int j = 0; j < params.nColPatches; j++)
@@ -277,7 +278,9 @@ void denoiseL0(
             vector<unsigned int> code   = o_indV[numPatch];
 
             //! patch with top left corner im_noisy(i,j)
-            double* iP      = &i_X[numPatch * params.m];
+            double* iP        = &i_X[numPatch * params.m];
+            double* iDenoi    = &o_imDenoised[i*params.w + j];
+            unsigned int* iM  = &median[i*params.w + j];
 
             for (unsigned int p = 0; p < sP; p++)
             {
@@ -289,22 +292,41 @@ void denoiseL0(
                     {
                         denoisedPixel += coeff[r] * i_D[code[r] * params.m + indexPatch];
                     }
-                    iP[indexPatch] = denoisedPixel;
-                    o_imDenoised[(i + p) * params.w + (j + q)] += denoisedPixel;
-                    median[(i + p) * params.w + (j + q)] += 1;
+                    iDenoi[p * params.w + q] += denoisedPixel;
+                    iM[p * params.w + q] += 1;
                 }
             }
         }
     }
 
-    //! merge dneoised patch information
+    //! merge denoised patch information
+    //float m = 255, M = 0;
     for(unsigned int i = 0; i < params.nRowPatches; i++)
     {
         for(unsigned int j = 0; j < params.nColPatches; j++)
         {
-            o_imDenoised[i * params.w + j] /= min(float(median[i * params.w + j]), 1.f);
+            if(median[i * params.w + j] != 0){
+              o_imDenoised[i * params.w + j] = o_imDenoised[i * params.w + j]/median[i * params.w + j];
+            }
+            /*if(o_imDenoised[i * params.w + j] < m){
+              m = o_imDenoised[i * params.w + j];
+            }
+            if(o_imDenoised[i * params.w + j] > M){
+              M = o_imDenoised[i * params.w + j];
+            }*/
         }
     }
+
+    /*for(unsigned int i = 0; i < params.nRowPatches; i++)
+    {
+        for(unsigned int j = 0; j < params.nColPatches; j++)
+        {
+            if(median[i * params.w + j] != 0){
+              o_imDenoised[i * params.w + j] = 255*(o_imDenoised[i * params.w + j]-m)/(M-m);
+            }
+        }
+    }*/
+
 }
 
 int main(
@@ -370,7 +392,11 @@ int main(
 
     display("PART 1 - LEARNING PART WITH LARS", params);
     //! number of random patches for dictionary update
-    unsigned nRandomPatches = 50;//unsigned(floor(.2 * params.nPatch));
+    unsigned nRandomPatches = 50; //unsigned(floor(.2 * params.nPatch)); TODO: what could be this number ?
+    
+    if(params.verbose){
+      cout << "Number of random patches: " << nRandomPatches << endl;
+    }
 
     //! dictionary training with LARS/update
     //trainL1(dict, imNoisy, nRandomPatches, params);
@@ -378,7 +404,7 @@ int main(
     display("PART 2 - ORMP from KSVD", params);
 
     //! roughly denoised picture
-    vector<double> denoi1(imNoisy.size(), (double)0);
+    vector<double> denoi1(imNoisy.size(), (double) 0);
 
     //! pre-denoise picture with ORMP and previously learned dictionary
     denoiseL0(imNoisy, denoi1, dict, params);
