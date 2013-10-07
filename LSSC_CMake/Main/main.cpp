@@ -268,7 +268,7 @@ void denoiseL0(
 
     //! denoise each patch separately
     vector<unsigned int> median(i_imNoisy.size(), 0);
-    
+
     for(unsigned int i = 0; i < params.nRowPatches; i++)
     {
         for(unsigned int j = 0; j < params.nColPatches; j++)
@@ -278,7 +278,7 @@ void denoiseL0(
             vector<unsigned int> code   = o_indV[numPatch];
 
             //! patch with top left corner im_noisy(i,j)
-            double* iP        = &i_X[numPatch * params.m];
+            //double* iP        = &i_X[numPatch * params.m];
             double* iDenoi    = &o_imDenoised[i*params.w + j];
             unsigned int* iM  = &median[i*params.w + j];
 
@@ -343,7 +343,7 @@ int main(
     }
 
     //! Variables initialization
-    const float sigma = float(atof(argv[2]));
+    const float sigma = float(atof(argv[2])) / 255.f;
     const bool doBias = bool(atof(argv[8]) != 0);
 
     //! Declarations
@@ -358,7 +358,19 @@ int main(
         return EXIT_FAILURE;
     }
 
+    //! The range intensity must be [0, 1] and convert to gray level
+    float* iR = &im[0];
+    float* iG = &im[imSize.wh];
+    float* iB = &im[imSize.wh * 2];
+    for (unsigned int k = 0; k < imSize.wh; k++) {
+      float mean = (iR[k] + iG[k] + iB[k]) / 3.f;
+      iR[k] = mean / 255.f;
+      iG[k] = mean / 255.f;
+      iB[k] = mean / 255.f;
+    }
+
     //! Add noise
+    cout << "sigma = " << sigma << endl;
     addNoise(im, imNoisy, sigma, verbose);
 
     //! Parameters
@@ -392,14 +404,44 @@ int main(
 
     display("PART 1 - LEARNING PART WITH LARS", params);
     //! number of random patches for dictionary update
-    unsigned nRandomPatches = 50; //unsigned(floor(.2 * params.nPatch)); TODO: what could be this number ?
-    
+    unsigned nRandomPatches = 10; //unsigned(floor(.2 * params.nPatch)); TODO: what could be this number ?
+
     if(params.verbose){
       cout << "Number of random patches: " << nRandomPatches << endl;
     }
 
+    //! Check if dict has NaN
+    for (unsigned int i = 0; i < params.m; i++) {
+      for (unsigned int j = 0; j < params.k; j++) {
+        if (dict(i, j) != dict(i, j)) {
+          cout << "Dictionary has NaN" << endl;
+        }
+        if (dict(i,j) > params.infinity / 2) {
+          cout << "Dictionary has infinity" << endl;
+        }
+        if (dict(i,j) < -1.f || dict(i,j)> 1.f) {
+          cout << "Dict(" << i << ", " << j << ") = " << dict(i,j) << endl;
+        }
+      }
+    }
+
     //! dictionary training with LARS/update
-    //trainL1(dict, imNoisy, nRandomPatches, params);
+    trainL1(dict, imNoisy, nRandomPatches, params);
+
+    //! Check if dict has NaN
+    for (unsigned int i = 0; i < params.m; i++) {
+      for (unsigned int j = 0; j < params.k; j++) {
+        if (dict(i, j) != dict(i, j)) {
+          cout << "Dictionary has NaN" << endl;
+        }
+        if (dict(i,j) > params.infinity / 2) {
+          cout << "Dictionary has infinity" << endl;
+        }
+        if (dict(i,j) < -1.f || dict(i,j)> 1.f) {
+          cout << "Dict(" << i << ", " << j << ") = " << dict(i,j) << endl;
+        }
+      }
+    }
 
     display("PART 2 - ORMP from KSVD", params);
 
@@ -433,6 +475,13 @@ int main(
                 imDiffBias.push_back(imNoisy[0 * imSize.wh + i * imSize.width + j]);
             }
         }
+    }
+
+    //! Get back to [0, 255]
+    for (unsigned int k = 0; k < imSize.whc; k++) {
+      im     [k] *= 255.f;
+      imNoisy[k] *= 255.f;
+      imFinal[k] *= 255.f;
     }
 
     //! Compute PSNR and RMSE

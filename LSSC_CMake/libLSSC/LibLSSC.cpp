@@ -77,7 +77,7 @@ void trainL1(
       }
       cout << endl;
       cout << "-------------------------------------" << endl;
-      /*for(unsigned int n = 0; sP < k; n++){
+      for(unsigned int n = 0; sP < k; n++){
         cout << patch[n] << " " ;
       }
       cout << endl;
@@ -253,9 +253,9 @@ void computeLars(
           cout << "BEWARE: the inactive index " << j << " has reached the maximum of correlation" << endl;
         }
       }
-      /*if(error){
+      if(error && false){
         sleep(360);
-      }*/
+      }
     }
 
     //! Compute Gamma
@@ -332,6 +332,7 @@ void computeLars(
     // break if the step is too high
     if(gamma >= p_params.infinity / 2){
       display(" the step is too high", p_params);
+      cout << "gamma: " << gamma << " downdate step: " << stepDownDate << " step max: " << stepMax << endl;
       break;
     }
 

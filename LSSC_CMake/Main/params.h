@@ -74,22 +74,23 @@ struct Parameters{
     sigma           = s;
 
     // from KSVD IPOL
-    sPatch          =  (sigma  <= 20 ? 5 :
-                       (sigma  <= 60 ? 7 : 9)); 
+    sPatch          =  (sigma  <= 20.l / 255.l ? 5 :
+                       (sigma  <= 60.l / 255.l ? 7 : 9));
     m               = sPatch * sPatch;
     k               = 512;
     nRowPatches     = h-sPatch+1;
     nColPatches     = w-sPatch+1;
     nPatch          = nRowPatches*nColPatches;
 
-    reg             = 0; // TODO: compute the real value
+    reg             = (sPatch == 5 ? 34.28f :
+                       sPatch == 7 ? 63.17f : 96.58f) * sigma * sigma;// * 255.f * 255.f; // TODO: compute the real value
 
     updateIteration = 1; // TODO Mairal used this parameter as default
 
 
-    C               = (chnls == 1 ? (sPatch == 5 ? 1.2017729876383829 : (sPatch == 7 ? 1.1456550151825420 : 1.1139195378939404))					
+    C               = (chnls == 1 ? (sPatch == 5 ? 1.2017729876383829 : (sPatch == 7 ? 1.1456550151825420 : 1.1139195378939404))
                                                                       : (sPatch == 5 ? 1.1182997771678573 : (sPatch == 7 ? 1.0849724948297015 : 1.0662877194412401)));
-    epsORMP         = ((double) (chnls * m)) * C * C * sigma / 255.l * sigma / 255.l;
+    epsORMP         = ((double) (chnls * m)) * C * C * sigma * sigma;
 
     verbose         = true;
 
