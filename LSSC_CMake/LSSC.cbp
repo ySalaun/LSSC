@@ -23,6 +23,7 @@
 				<Option parameters="/home/ibal/Images/input/NoiseFree/Traffic.png 20 /home/ibal/Images/output/LSSC/noisy.png /home/ibal/Images/output/LSSC/denoised.png /home/ibal/Images/output/LSSC/difference.png /home/ibal/Images/output/LSSC/bias.png /home/ibal/Images/output/LSSC/diff_bias.png 0 /home/ibal/Dropbox/Work/Programmes/Images/LSSC/LSSC/LSSC_Dictionaries/dict_n9.txt" />
 				<Compiler>
 					<Add option="-O2" />
+					<Add option="-fopenmp" />
 				</Compiler>
 				<Linker>
 					<Add option="-s" />

@@ -56,6 +56,11 @@ public :
     const unsigned int p_i,
     const unsigned int p_j) const;
 
+  //! Get the pointer of the position (p_i, p_j) of the current matrix
+  float* getRef(
+    const unsigned int p_i,
+    const unsigned int p_j);
+
   //! Set the transpose of a matrix.
   void setTranspose(
     Matrix const& i_mat);
@@ -156,6 +161,10 @@ public :
     const int p_col,
     const int p_iMax = -1,
     const int p_jMax = -1);
+
+  //! Return the l2 norms of the columns of the matrix into x
+  void norm2sqCols(
+    std::vector<float> &o_x) const;
 
 private :
   unsigned int m_row;

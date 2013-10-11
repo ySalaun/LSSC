@@ -68,7 +68,7 @@ void trainL1(
 
     //! LARS
     display("- LARS", p_params);
-    vector<float> alpha;
+    vector<float> alpha; //! Marc: pourquoi un deuxième alpha ? il y en a déjà un de déclarer plus haut...
     computeLars(io_dict, patch, p_params, alpha);
     // TODO debug mode
     /*if (p_params.debug) {
@@ -539,9 +539,377 @@ void updateDictionary(
 
 
 
+/**
+ * FROM HERE, IT'S THE CODE of JULIEN MAIRAL REWRITTEN
+ **/
 
 
+//! lars algorithm that minimizes ||alpha||_1 s.t. ||i_noisy - dict*alpha||_2 < lambda
+void computeLarsMairal(
+  const Matrix &i_patch,
+  const Matrix &p_dict,
+  Matrix &o_alpha,
+  const unsigned int p_m,
+  const unsigned int p_n,
+  const unsigned int p_p,
+  const unsigned int p_L,
+  const float p_lambda){
 
+  //! Declarations
+  Matrix G;
+  Matrix DtX;
+
+  //! D'D
+  G  .productAtB(p_dict, p_dict);
+  DtX.productAtB(p_dict, i_patch);
+
+  //! Add diagonal
+  for (unsigned int k = 0; k < p_p; k++) {
+    G(k, k) += 1e-10f;
+  }
+
+  //! Initializations
+  o_alpha.setSize(p_p, p_n);
+  for (unsigned int i = 0; i < p_p; i++) {
+    for (unsigned int j = 0; j < p_n; j++) {
+      o_alpha(i, j) = 0.f;
+    }
+  }
+
+  //! Compute the norm of patches
+  vector<float> norms;
+  i_patch.norm2sqCols(norms);
+
+#ifdef _OPENMP
+#pragma omp parallel for private(i)
+#endif
+  for (unsigned int i = 0; i < p_n; i++) {
+
+    //! Initializations
+    vector<int  > ind(p_L);
+    vector<float> coeffs(p_L);
+    vector<float> DtR(p_p);
+    DtX.getCol(DtR, i);
+
+    //! Call the core LARS function
+    coreLarsMairal(DtR, G, coeffs, ind, norms[i], p_lambda, p_L, p_p);
+
+    //! Get results
+    for (unsigned int j = 0; j < p_L; j++) {
+      if (ind[j] >= 0) {
+        o_alpha(ind[j], i) = coeffs[j];
+      }
+    }
+  }
+}
+
+
+//! Core function for the LARS algorithm.
+void coreLarsMairal(
+  std::vector<float> &io_DtR,
+  Matrix const& i_G,
+  std::vector<float> &o_coeffs,
+  std::vector<int> &o_ind,
+  const float i_normX,
+  const float p_lambda,
+  const unsigned int p_L,
+  const unsigned int p_K){
+
+  //! Initializations
+  const unsigned int LL = p_L;
+  const unsigned int L = std::min(LL, p_K);
+  const int lengthPath = 4 * L;
+  vector<float> u(p_K, 0.f);
+  Matrix Gs     (p_L, p_L);
+  Matrix Ga     (p_L, p_K);
+  Matrix invGs  (p_L, p_L);
+  vector<float> values(p_K);
+  float normX = i_normX;
+
+  const float infinity = std::numeric_limits<float>::max();
+  for (unsigned int k = 0; k < p_L; k++) {
+    o_coeffs[k] = 0.f;
+    o_ind   [k] = -1;
+  }
+
+  //! Find the most correlated element
+  int currentInd = findMax(io_DtR, p_K);
+  if (i_normX < p_lambda) {
+    return;
+  }
+  bool newAtom = true;
+
+  int i;
+  int iter   = 0;
+  float thrs = 0.f;
+
+  for (i = 0; i < (int) L; ++i) {
+    iter++;
+    if (newAtom) {
+      o_ind[i] = currentInd;
+      Ga.copyRow(i_G, o_ind[i], i);
+      const float* iGa = Ga.getRef(i, 0);
+      float* iGs       = Gs.getRef(i, 0);
+      for (int j = 0; j <= i; j++) {
+        iGs[j] = iGa[o_ind[j]];
+      }
+
+      //! Update inverse of Gs
+      updateGramMairal(Gs, invGs, i);
+    }
+
+    //! Compute the path direction
+    for (int j = 0; j <= i; j++) {
+       values[j] = (io_DtR[o_ind[j]] > 0.f ? 1.f : -1.f);
+    }
+    for (int p = 0; p < i + 1; p++) {
+      float val = 0.f;
+      const float* iInvGsq = invGs.getRef(0, p);
+      const float* iInvGsp = invGs.getRef(p, 0);
+      for (int q = 0; q < i + 1; q++) {
+        if (q >= p) {
+          val += iInvGsq[q * p_L] * values[q];
+        }
+        else { // Because matrices aren't stored only upper part (they're symmetric)
+          val += iInvGsp[q] * values[q];
+        }
+      }
+      u[p] = val;
+    }
+
+    //! Compute the step on the path
+    float step_max = infinity;
+    int first_zero = -1;
+    for (int j = 0; j <= i; j++) {
+      const float ratio = -o_coeffs[j] / u[j];
+      if (ratio > 0.f && ratio <= step_max) {
+        step_max   = ratio;
+        first_zero = j;
+      }
+    }
+
+    const float current_correlation = fabs(io_DtR[o_ind[0]]);
+    float step = infinity;
+    vector<int> index (p_K, 1);
+    for (int p = 0; p <= i; p++) {
+      index[o_ind[p]] = -1;
+    }
+    for (unsigned int p = 0; p < p_K; p++) {
+      float val = 0.f;
+      const float* iGa = Ga.getRef(0, p);
+      for (int q = 0; q < i + 1; q++) {
+        val += iGa[q * p_K] * u[q];
+      }
+
+      if (index[p] > 0) {
+        if (val > -1.f) {
+          const float frac = fabs((current_correlation + io_DtR[p]) / (1.f + val));
+          if (frac < step) {
+            step       = frac;
+            currentInd = p;
+          }
+        }
+        if (val < 1.f) {
+          const float frac = fabs((current_correlation - io_DtR[p]) / (1.f - val));
+          if (frac < step) {
+            step       = frac;
+            currentInd = p;
+          }
+        }
+      }
+      values[p] = val;
+    }
+
+    //! compute the coefficients of the polynome representing normX^2
+    float coeff1 = 0.f;
+    for (int j = 0; j <= i; j++) {
+       coeff1 += (io_DtR[o_ind[j]] > 0.f ? u[j] : -u[j]);
+    }
+    float coeff2 = 0.f;
+    for (int j = 0; j <= i; j++) {
+       coeff2 += io_DtR[o_ind[j]] * u[j];
+    }
+    float coeff3 = normX - p_lambda;
+
+    float step_max2;
+    /// L2ERROR
+    const float delta = coeff2 * coeff2 - coeff1 * coeff3;
+    step_max2 = delta < 0.f ? infinity : (coeff2 - sqrt(delta)) / coeff1;
+    step_max2 = std::min(current_correlation, step_max2);
+    step      = std::min(std::min(step, step_max2), step_max);
+
+    //! Stop the path
+    if (step == infinity) {
+      break;
+    }
+
+    //! Update coefficients
+    for (int p = 0; p < i + 1; p++) {
+      o_coeffs[p] += step * u[p];
+    }
+
+    //! Update correlations
+    for (unsigned int p = 0; p < p_K; p++) {
+      io_DtR[p] -= step * values[p];
+    }
+
+    //! Update normX
+    normX += coeff1 * step * step - 2.f * coeff2 * step;
+
+    //! Update norm1
+    thrs += step * coeff1;
+
+    //! Choose next action
+    if (step == step_max) {
+      /// Downdate, remove first_zero
+      downdateGramMairal(Gs, invGs, Ga, o_ind, o_coeffs, i, first_zero);
+
+      newAtom = false;
+      i = i - 2;
+    }
+    else {
+      newAtom = true;
+    }
+
+    if (iter >= lengthPath - 1         ||
+        fabs(step) < 1e-15             ||
+        fabs(step - step_max2) < 1e-15 ||
+        normX < 1e-15                  ||
+        i == (L - 1)                   ||
+        normX - p_lambda < 1e-15       ) {
+      break;
+    }
+  }
+}
+
+
+//! Find the maximum magnitude of a vector.
+unsigned int findMax(
+  std::vector<float> const& i_vec,
+  const unsigned int p_N){
+
+  //! Initializations
+  const float* iV  = &i_vec[0];
+  float maxVal     = fabs(iV[0]);
+  unsigned int ind = 0;
+
+  for (unsigned int n = 1; n < p_N; n++) {
+    if (maxVal < fabs(iV[n])) {
+      maxVal = fabs(iV[n]);
+      ind = n;
+    }
+  }
+
+  return ind;
+}
+
+
+//! Update the inverse of the gram matrix Gs = invGs.
+void updateGramMairal(
+  Matrix const& i_Gs,
+  Matrix &io_invGs,
+  const unsigned int p_iter){
+
+  //! Trivial case
+  if (p_iter == 0) {
+    io_invGs(0, 0) = 1.f / i_Gs(0, 0);
+  }
+  //! Other cases
+  else {
+    //! Initializations
+    vector<float> u(p_iter);
+    const float* iGs = ((Matrix) i_Gs).getRef(p_iter, 0);
+
+    for (unsigned int p = 0; p < p_iter; p++) {
+      const float value = iGs[p];
+      float* iInvGs = io_invGs.getRef(p, 0);
+      for (unsigned int q = 0; q < p_iter; q++) {
+        if (p > q) {
+          u[q] += iInvGs[q] * value;
+        }
+        else {
+          u[q] += io_invGs(q, p) * value;
+        }
+      }
+    }
+
+    float scalTmp = 0.f;
+    for (unsigned int p = 0; p < p_iter; p++) {
+      scalTmp += u[p] * iGs[p];
+    }
+    const float schur = 1.f / (iGs[p_iter] - scalTmp);
+
+    float* iInvGs = io_invGs.getRef(p_iter, 0);
+    iInvGs[p_iter] = schur;
+    for (unsigned int p = 0; p < p_iter; p++) {
+      iInvGs[p] = -u[p] * schur;
+      float* iInvGsp = io_invGs.getRef(p, 0);
+
+      for (unsigned int q = 0; q <= p; q++) {
+        iInvGsp[q] += u[p] * u[q] * schur;
+      }
+    }
+  }
+}
+
+
+//! Downdate the inverse of the Gram matrix.
+void downdateGramMairal(
+  Matrix &io_Gs,
+  Matrix &io_invGs,
+  Matrix &io_Ga,
+  std::vector<int> &io_ind,
+  std::vector<float> &io_coeffs,
+  const unsigned int p_iter,
+  const unsigned int p_firstZero){
+
+  /// Downdate Ga, ind, coeffs
+  for (unsigned int p = p_firstZero; p < p_iter; p++) {
+    io_Ga.copyRow(io_Ga, p + 1, p);
+    io_ind   [p] = io_ind   [p + 1];
+    io_coeffs[p] = io_coeffs[p + 1];
+  }
+
+  io_ind   [p_iter] = -1;
+  io_coeffs[p_iter] = 0.f;
+
+  //! Downdate Gs
+  io_Gs.removeRowCol(p_firstZero, p_firstZero, p_iter, p_iter);
+
+  //! Downdate invGs
+  vector<float> u(p_iter);
+  const float schur = io_invGs(p_firstZero, p_firstZero);
+  float* iInvGs = io_invGs.getRef(p_firstZero, 0);
+  for (unsigned int p = 0; p < p_firstZero; p++) {
+    u[p] = iInvGs[p];
+  }
+
+  float* iu = &u[p_firstZero];
+  iInvGs = io_invGs.getRef(p_firstZero + 1, p_firstZero);
+  for (unsigned int p = 0; p < p_iter - p_firstZero; p++) {
+    iu[p] = iInvGs[p];
+  }
+
+  for (unsigned int p = p_firstZero; p < p_iter; p++) {
+    float* iInvGs1 = io_invGs.getRef(p + 1, 0);
+    iInvGs         = io_invGs.getRef(p    , 0);
+    for (unsigned int q = 0; q < p_firstZero; q++) {
+      iInvGs[q] = iInvGs1[q];
+    }
+    iInvGs1 = io_invGs.getRef(p + 1, p_firstZero + 1);
+    iInvGs  = io_invGs.getRef(p    , p_firstZero    );
+    for (unsigned int q = 0; q < p_iter - p_firstZero; q++) {
+      iInvGs[q] = iInvGs1[q];
+    }
+  }
+
+  for (unsigned int p = 0; p < p_iter; p++) {
+    iInvGs = io_invGs.getRef(p, 0);
+    for (unsigned int q = 0; q <= p; q++) {
+      iInvGs[q] -= u[p] * u[q] * (1.f / schur);
+    }
+  }
+}
 
 
 

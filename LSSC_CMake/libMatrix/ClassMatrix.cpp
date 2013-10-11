@@ -118,6 +118,14 @@ float Matrix::operator()(
 }
 
 
+//! Get the pointer of the position (p_i, p_j) of the current matrix
+float* Matrix::getRef(
+  const unsigned int p_i,
+  const unsigned int p_j){
+  return &m_mat[p_i * m_col + p_j];
+}
+
+
 //! Get the transpose of a matrix.
 void Matrix::setTranspose(
   Matrix const& i_mat) {
@@ -635,6 +643,21 @@ void Matrix::removeRowCol(
       for (unsigned int j = 0; j < n - p_col; j++) {
         iM1[j] = iM2[j];
       }
+    }
+  }
+}
+
+
+//! Return the l2 norms of the columns of the matrix into x
+void Matrix::norm2sqCols(
+  std::vector<float> &o_x) const {
+
+  o_x.resize(m_col);
+
+  for (unsigned int i = 0; i < m_row; i++) {
+    const float* iM = &m_mat[i * m_col];
+    for (unsigned int j = 0; j < m_col; j++) {
+      o_x[j] += iM[j] * iM[j];
     }
   }
 }

@@ -329,6 +329,55 @@ void denoiseL0(
 
 }
 
+void testLars(){
+
+  //! Dimensions
+  const unsigned int m = 4; // size of patch
+  const unsigned int n = 1; // number of patches
+  const unsigned int p = 3; // number of elements int the dictionary
+
+  //! Declarations
+  vector<float> X(m * n, 0.f);
+  Matrix D(m, p);
+  vector<float> alpha(p, 0.f), A(p, 0.f);
+
+  //! Parameter initialization
+  Parameters params(0, 0, 0, 20);
+  params.k        = p;
+  params.reg      = 0.15f;
+  params.epsilon  = 1e-15f;
+  params.verbose  = true;
+  params.debug    = true;
+  params.infinity = std::numeric_limits<float>::max();
+
+  //! Initializations
+  X[0] = 0.57996866f;
+  X[1] = 0.13155995f;
+  X[2] = 0.32178034f;
+  X[3] = 0.73673994f;
+  D(0, 0) = 0.99172287f; D(0, 1) = -0.53980467f; D(0, 2) = 0.71579501f;
+  D(1, 0) = -0.0803747f; D(1, 1) = -0.05701349f; D(1, 2) = 0.30934422f;
+  D(2, 0) = 0.07649096f; D(2, 1) =  0.80327576f; D(2, 2) = 0.57336454f;
+  D(3, 0) = 0.06461266f; D(3, 1) =  0.24517023f; D(3, 2) = 0.25138967f;
+  if (params.reg == 0.15f) {
+    A[0] = 0.22529752695f;
+    A[1] = 0.145003746083f;
+    A[2] = 0.640535387913f;
+  }
+  if (params.reg == 0.5f) {
+    A[2] = 0.39949061948f;
+  }
+
+  //! Run the LARS algorithm
+  computeLars(D, X, params, alpha);
+
+  //! Compare the result to the real one
+  for (unsigned int k = 0; k < p; k++) {
+    cout << alpha[k] << " (" << A[k] << ")" << endl;
+  }
+}
+
+
 int main(
     int argc,
     char **argv
@@ -341,6 +390,9 @@ int main(
             bias diff_bias computeBias dict.txt" << endl;
         return EXIT_FAILURE;
     }
+
+    testLars();
+    return EXIT_SUCCESS;
 
     //! Variables initialization
     const float sigma = float(atof(argv[2])) / 255.f;

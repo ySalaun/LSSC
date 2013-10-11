@@ -129,4 +129,118 @@ void updateDictionary(
   const Parameters &params);
 
 
+/**
+ * FROM HERE, IT'S THE CODE of JULIEN MAIRAL REWRITTEN
+ **/
+
+
+
+/**
+ * @brief Compute the LARS algorithm that minimizes
+ *      ||alpha||_1 s.t. ||i_noisy - dict*alpha||_2 < lambda
+ *
+ * @param p_patch : (m x n) matrix containing n patches of size m;
+ * @param p_dict : (m x p) matrix (dictionary) containing p elements of length m;
+ * @param o_alpha : (p x n) will contain the minimized coefficients;
+ * @param p_m : size of a patch;
+ * @param p_n : number of patches;
+ * @param p_p : number of elements of the dictionary;
+ * @param p_L : maximum number of coefficients;
+ * @param p_lambda : constraint;
+
+ *
+ * @return none.
+ **/
+void computeLarsMairal(
+  const Matrix &i_patch,
+  const Matrix &p_dict,
+  Matrix &o_alpha,
+  const unsigned int p_m,
+  const unsigned int p_n,
+  const unsigned int p_p,
+  const unsigned int p_L,
+  const float p_lambda);
+
+
+/**
+ * @brief Core function for the LARS algorithm.
+ *
+ * @param io_DtR :
+ * @param i_G :
+ * @param io_Gs :
+ * @param io_Ga :
+ * @param io_invGs :
+ * @param io_u :
+ * @param o_coeffs :
+ * @param o_ind :
+ * @param io_work :
+ * @param io_normX :
+ * @param p_lambda :
+ * @param p_L :
+ * @param p_K :
+ *
+ * @return none.
+ **/
+void coreLarsMairal(
+  std::vector<float> &io_DtR,
+  Matrix const& i_G,
+  std::vector<float> &o_coeffs,
+  std::vector<int> &o_ind,
+  const float i_normX,
+  const float p_lambda,
+  const unsigned int p_L,
+  const unsigned int p_K);
+
+
+/**
+ * @brief Find the maximum magnitude of a vector.
+ *
+ * @param i_vec : input values;
+ * @param p_N : number of values.
+ *
+ * @return the corresponding index to the biggest magnitude.
+ **/
+unsigned int findMax(
+  std::vector<float> const& i_vec,
+  const unsigned int p_N);
+
+
+/**
+ * @brief Update the inverse of the gram matrix Gs = invGs.
+ *
+ * @param i_Gs : gram matrix;
+ * @param io_invGs : inverse to update according to i_Gs;
+ * @param p_iter : current index.
+ *
+ * @return none.
+ **/
+void updateGramMairal(
+  Matrix const& i_Gs,
+  Matrix &io_invGs,
+  const unsigned int p_iter);
+
+
+/**
+ * @brief Downdate the inverse of the Gram matrix.
+ *
+ * @param io_Gs : Gram matrix. Will be downdated;
+ * @param io_invGs : inverse of the Gram matrix. Will be downdated;
+ * @param io_Ga : pseudo-Gram matrix. Will be downdated;
+ * @param io_ind : index of coefficients. Will be downdated;
+ * @param io_coeffs : coefficients. Will be downdated;
+ * @param p_iter : current index;
+ * @param p_firstZero : critical index where the downdate has to be done.
+ *
+ * @return none.
+ **/
+void downdateGramMairal(
+  Matrix &io_Gs,
+  Matrix &io_invGs,
+  Matrix &io_Ga,
+  std::vector<int> &io_ind,
+  std::vector<float> &io_coeffs,
+  const unsigned int p_iter,
+  const unsigned int p_firstZero);
+
+
 #endif // LIB_LSSC_H_INCLUDED
