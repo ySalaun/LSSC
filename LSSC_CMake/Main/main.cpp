@@ -391,8 +391,8 @@ int main(
         return EXIT_FAILURE;
     }
 
-    testLars();
-    return EXIT_SUCCESS;
+    /*testLars();
+    return EXIT_SUCCESS;*/
 
     //! Variables initialization
     const float sigma = float(atof(argv[2])) / 255.f;
@@ -411,14 +411,21 @@ int main(
     }
 
     //! The range intensity must be [0, 1] and convert to gray level
-    float* iR = &im[0];
-    float* iG = &im[imSize.wh];
-    float* iB = &im[imSize.wh * 2];
-    for (unsigned int k = 0; k < imSize.wh; k++) {
-      float mean = (iR[k] + iG[k] + iB[k]) / 3.f;
-      iR[k] = mean / 255.f;
-      iG[k] = mean / 255.f;
-      iB[k] = mean / 255.f;
+    if(imSize.nChannels == 3){
+      float* iR = &im[0];
+      float* iG = &im[imSize.wh];
+      float* iB = &im[imSize.wh * 2];
+      for (unsigned int k = 0; k < imSize.wh; k++) {
+        float mean = (iR[k] + iG[k] + iB[k]) / 3.f;
+        iR[k] = mean / 255.f;
+        iG[k] = mean / 255.f;
+        iB[k] = mean / 255.f;
+      }
+    }
+    else{
+       for (unsigned int k = 0; k < imSize.wh; k++) {
+         im[k] /= 255.f;
+       }
     }
 
     //! Add noise

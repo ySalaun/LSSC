@@ -155,11 +155,8 @@ void computeLarsMairal(
   const Matrix &i_patch,
   const Matrix &p_dict,
   Matrix &o_alpha,
-  const unsigned int p_m,
   const unsigned int p_n,
-  const unsigned int p_p,
-  const unsigned int p_L,
-  const float p_lambda);
+  const Parameters& p_params);
 
 
 /**

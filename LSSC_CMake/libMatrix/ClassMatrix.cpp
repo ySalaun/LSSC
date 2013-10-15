@@ -153,6 +153,7 @@ void Matrix::copyRow(
 
   if(m_col != i_mat.m_col) {
     cerr << "copyRow : Error in col size" << endl;
+    cout << m_col << "/" << i_mat.m_col << endl;
     return;
   }
   else {
@@ -395,7 +396,7 @@ void Matrix::productAtB(
 
   //! Check sizes
   if (i_A.m_row != i_B.m_row) {
-    cerr << "productAB : Error - sizes aren't consistent" << endl;
+    cerr << "productAtB : Error - sizes aren't consistent" << endl;
     return;
   }
 
