@@ -38,6 +38,12 @@ void trainL1(
     const unsigned int w  = p_params.w;
     const unsigned int k  = p_params.k;
     const unsigned int m  = p_params.m;
+    unsigned int mD, pD;
+    io_dict.getSize(mD, pD);
+    if (mD != m || pD != k) {
+      cout << "io_dict has not the good size." << endl;
+      return;
+    }
 
     //! matrices used for the dictionnary update
     Matrix A(k, k);
@@ -65,21 +71,22 @@ void trainL1(
 
       //! LARS
       display("- LARS", p_params);
-      
+
       //! sparse coefficients of the dictionnary
       vector<float> alpha(k, 0.f);
 
       Matrix patchMatrix(m, 1);
-      for(unsigned int i=0; i < m; i++){
-        patchMatrix(i, 1) = patch[i];
+      for(unsigned int i = 0; i < m; i++){
+        //patchMatrix(i, 1) = patch[i]; //! NON !!!!!! on commence à 0, pas 1
+        patchMatrix(i, 0) = patch[i];
       }
-
       Matrix alphaMatrix(k, 1);
 
       computeLarsMairal(patchMatrix, io_dict, alphaMatrix, 1, p_params);
 
-      for(unsigned int i=0; i < k; i++){
-        alpha[i] = alphaMatrix(i, 1);
+      for(unsigned int i = 0; i < k; i++){
+        //alpha[i] = alphaMatrix(i, 1); //! NON !!!!!!!!
+        alpha[i] = alphaMatrix(i, 0);
       }
       //computeLars(io_dict, patch, p_params, alpha);
       // TODO debug mode
@@ -265,9 +272,9 @@ void computeLars(
             cout << "BEWARE: the inactive index " << j << " has reached the maximum of correlation" << endl;
           }
         }
-        /*if(error && false){
+        if(error && false){
         sleep(360);
-        }*/
+        }
       }
 
       //! Compute Gamma
@@ -564,58 +571,61 @@ void computeLarsMairal(
   const unsigned int p_n,
   const Parameters &p_params){
 
-    // TODO: are these the correct parameters
-    //const unsigned int p_m = 0; // useles ???? why here ?
-    const unsigned int p_p = p_params.k;
-    const unsigned int p_L = p_params.k; // not really sure ....
-    const unsigned int p_lambda = p_params.reg;
+  // TODO: are these the correct parameters
+  //const unsigned int p_m = 0; // useles ???? why here ?
+  const unsigned int p_p = p_params.k;
+  //const unsigned int p_L = p_params.k; // not really sure ....
+  const unsigned int p_L = p_p * p_n;
+  //const unsigned int p_lambda = p_params.reg; //! NON !!!! p_lambda est un float, pas un int !
+  const float p_lambda = p_params.reg;
 
-    //! Declarations
-    Matrix G;
-    Matrix DtX;
+  //! Declarations
+  Matrix G;
+  Matrix DtX;
 
-    //! D'D
-    G  .productAtB(p_dict, p_dict);
-    DtX.productAtB(p_dict, i_patch);
+  //! D'D
+  G  .productAtB(p_dict, p_dict);
+  DtX.productAtB(p_dict, i_patch);
 
-    //! Add diagonal
-    for (unsigned int k = 0; k < p_p; k++) {
-      G(k, k) += 1e-10f;
+  //! Add diagonal
+  for (unsigned int k = 0; k < p_p; k++) {
+    G(k, k) += 1e-10f;
+  }
+
+  //! Initializations
+  o_alpha.setSize(p_p, p_n);
+  for (unsigned int i = 0; i < p_p; i++) {
+    for (unsigned int j = 0; j < p_n; j++) {
+      o_alpha(i, j) = 0.f;
     }
+  }
 
-    //! Initializations
-    o_alpha.setSize(p_p, p_n);
-    for (unsigned int i = 0; i < p_p; i++) {
-      for (unsigned int j = 0; j < p_n; j++) {
-        o_alpha(i, j) = 0.f;
-      }
-    }
-
-    //! Compute the norm of patches
-    vector<float> norms;
-    i_patch.norm2sqCols(norms);
+  //! Compute the norm of patches
+  vector<float> norms;
+  i_patch.norm2sqCols(norms);
 
 #ifdef _OPENMP
 #pragma omp parallel for private(i)
 #endif
-    for (unsigned int i = 0; i < p_n; i++) {
+  for (unsigned int i = 0; i < p_n; i++) {
 
-      //! Initializations
-      vector<int  > ind(p_L);
-      vector<float> coeffs(p_L);
-      vector<float> DtR(p_p);
-      DtX.getCol(DtR, i);
-      cout << "i=" << i << endl;
-      //! Call the core LARS function
-      coreLarsMairal(DtR, G, coeffs, ind, norms[i], p_lambda, p_L, p_p);
-      cout << "i=" << i << endl;
-      //! Get results
-      for (unsigned int j = 0; j < p_L; j++) {
-        if (ind[j] >= 0) {
-          o_alpha(ind[j], i) = coeffs[j];
-        }
+    //! Initializations
+    vector<int  > ind(p_L);
+    vector<float> coeffs(p_L);
+    vector<float> DtR(p_p);
+    DtX.getCol(DtR, i);
+    //cout << "i=" << i << endl;
+    //! Call the core LARS function
+    //cout << "norms = " << norms[i] << endl;
+    coreLarsMairal(DtR, G, coeffs, ind, norms[i], p_lambda, p_L, p_p);
+    //cout << "i=" << i << endl;
+    //! Get results
+    for (unsigned int j = 0; j < p_L; j++) {
+      if (ind[j] >= 0) {
+        o_alpha(ind[j], i) = coeffs[j];
       }
     }
+  }
 }
 
 
@@ -630,172 +640,172 @@ void coreLarsMairal(
   const unsigned int p_L,
   const unsigned int p_K){
 
-    //! Initializations
-    const unsigned int LL = p_L;
-    const unsigned int L = min(LL, p_K);
-    const int lengthPath = 4 * L;
-    vector<float> u(p_K, 0.f);
-    Matrix Gs     (p_L, p_L);
-    Matrix Ga     (p_L, p_K);
-    Matrix invGs  (p_L, p_L);
-    vector<float> values(p_K);
-    float normX = i_normX;
-    const float infinity = numeric_limits<float>::max();
-    for (unsigned int k = 0; k < p_L; k++) {
-      o_coeffs[k] = 0.f;
-      o_ind   [k] = -1;
+  //! Initializations
+  const unsigned int LL = p_L;
+  const unsigned int L = min(LL, p_K);
+  const int lengthPath = 4 * L;
+  vector<float> u(p_K, 0.f);
+  Matrix Gs     (p_L, p_L);
+  Matrix Ga     (p_L, p_K);
+  Matrix invGs  (p_L, p_L);
+  vector<float> values(p_K);
+  float normX = i_normX;
+  const float infinity = numeric_limits<float>::max();
+  for (unsigned int k = 0; k < p_L; k++) {
+    o_coeffs[k] = 0.f;
+    o_ind   [k] = -1;
+  }
+
+  //! Find the most correlated element
+  int currentInd = findMax(io_DtR, p_K);
+  if (i_normX < p_lambda) {
+    return;
+  }
+  bool newAtom = true;
+
+  int i;
+  int iter   = 0;
+  float thrs = 0.f;
+
+  for (i = 0; i < (int) L; ++i) {
+    iter++;
+    if (newAtom) {
+      o_ind[i] = currentInd;
+      cout << "test a" << endl;
+      Ga.copyRow(i_G, o_ind[i], i);
+      cout << "test b" << endl;
+      const float* iGa = Ga.getRef(i, 0);
+      float* iGs       = Gs.getRef(i, 0);
+      for (int j = 0; j <= i; j++) {
+        iGs[j] = iGa[o_ind[j]];
+      }
+
+      //! Update inverse of Gs
+      updateGramMairal(Gs, invGs, i);
+    }
+    cout << "test 1" << endl;
+    //! Compute the path direction
+    for (int j = 0; j <= i; j++) {
+      values[j] = (io_DtR[o_ind[j]] > 0.f ? 1.f : -1.f);
+    }
+    for (int p = 0; p < i + 1; p++) {
+      float val = 0.f;
+      const float* iInvGsq = invGs.getRef(0, p);
+      const float* iInvGsp = invGs.getRef(p, 0);
+      for (int q = 0; q < i + 1; q++) {
+        if (q >= p) {
+          val += iInvGsq[q * p_L] * values[q];
+        }
+        else { // Because matrices aren't stored only upper part (they're symmetric)
+          val += iInvGsp[q] * values[q];
+        }
+      }
+      u[p] = val;
+    }
+    cout << "test 2" << endl;
+    //! Compute the step on the path
+    float step_max = infinity;
+    int first_zero = -1;
+    for (int j = 0; j <= i; j++) {
+      const float ratio = -o_coeffs[j] / u[j];
+      if (ratio > 0.f && ratio <= step_max) {
+        step_max   = ratio;
+        first_zero = j;
+      }
+    }
+    cout << "test 3" << endl;
+    const float current_correlation = fabs(io_DtR[o_ind[0]]);
+    float step = infinity;
+    vector<int> index (p_K, 1);
+    for (int p = 0; p <= i; p++) {
+      index[o_ind[p]] = -1;
+    }
+    for (unsigned int p = 0; p < p_K; p++) {
+      float val = 0.f;
+      const float* iGa = Ga.getRef(0, p);
+      for (int q = 0; q < i + 1; q++) {
+        val += iGa[q * p_K] * u[q];
+      }
+
+      if (index[p] > 0) {
+        if (val > -1.f) {
+          const float frac = fabs((current_correlation + io_DtR[p]) / (1.f + val));
+          if (frac < step) {
+            step       = frac;
+            currentInd = p;
+          }
+        }
+        if (val < 1.f) {
+          const float frac = fabs((current_correlation - io_DtR[p]) / (1.f - val));
+          if (frac < step) {
+            step       = frac;
+            currentInd = p;
+          }
+        }
+      }
+      values[p] = val;
+    }
+    cout << "test 4" << endl;
+    //! compute the coefficients of the polynome representing normX^2
+    float coeff1 = 0.f;
+    for (int j = 0; j <= i; j++) {
+      coeff1 += (io_DtR[o_ind[j]] > 0.f ? u[j] : -u[j]);
+    }
+    float coeff2 = 0.f;
+    for (int j = 0; j <= i; j++) {
+      coeff2 += io_DtR[o_ind[j]] * u[j];
+    }
+    float coeff3 = normX - p_lambda;
+    cout << "test 5" << endl;
+    float step_max2;
+    /// L2ERROR
+    const float delta = coeff2 * coeff2 - coeff1 * coeff3;
+    step_max2 = delta < 0.f ? infinity : (coeff2 - sqrt(delta)) / coeff1;
+    step_max2 = min(current_correlation, step_max2);
+    step      = min(min(step, step_max2), step_max);
+
+    //! Stop the path
+    if (step == infinity) {
+      break;
     }
 
-    //! Find the most correlated element
-    int currentInd = findMax(io_DtR, p_K);
-    if (i_normX < p_lambda) {
-      return;
+    //! Update coefficients
+    for (int p = 0; p < i + 1; p++) {
+      o_coeffs[p] += step * u[p];
     }
-    bool newAtom = true;
 
-    int i;
-    int iter   = 0;
-    float thrs = 0.f;
+    //! Update correlations
+    for (unsigned int p = 0; p < p_K; p++) {
+      io_DtR[p] -= step * values[p];
+    }
 
-    for (i = 0; i < (int) L; ++i) {
-      iter++;
-      if (newAtom) {
-        o_ind[i] = currentInd;
-        cout << "test a" << endl;
-        Ga.copyRow(i_G, o_ind[i], i);
-        cout << "test b" << endl;
-        const float* iGa = Ga.getRef(i, 0);
-        float* iGs       = Gs.getRef(i, 0);
-        for (int j = 0; j <= i; j++) {
-          iGs[j] = iGa[o_ind[j]];
-        }
+    //! Update normX
+    normX += coeff1 * step * step - 2.f * coeff2 * step;
 
-        //! Update inverse of Gs
-        updateGramMairal(Gs, invGs, i);
-      }
-      cout << "test 1" << endl;
-      //! Compute the path direction
-      for (int j = 0; j <= i; j++) {
-        values[j] = (io_DtR[o_ind[j]] > 0.f ? 1.f : -1.f);
-      }
-      for (int p = 0; p < i + 1; p++) {
-        float val = 0.f;
-        const float* iInvGsq = invGs.getRef(0, p);
-        const float* iInvGsp = invGs.getRef(p, 0);
-        for (int q = 0; q < i + 1; q++) {
-          if (q >= p) {
-            val += iInvGsq[q * p_L] * values[q];
-          }
-          else { // Because matrices aren't stored only upper part (they're symmetric)
-            val += iInvGsp[q] * values[q];
-          }
-        }
-        u[p] = val;
-      }
-      cout << "test 2" << endl;
-      //! Compute the step on the path
-      float step_max = infinity;
-      int first_zero = -1;
-      for (int j = 0; j <= i; j++) {
-        const float ratio = -o_coeffs[j] / u[j];
-        if (ratio > 0.f && ratio <= step_max) {
-          step_max   = ratio;
-          first_zero = j;
-        }
-      }
-      cout << "test 3" << endl;
-      const float current_correlation = fabs(io_DtR[o_ind[0]]);
-      float step = infinity;
-      vector<int> index (p_K, 1);
-      for (int p = 0; p <= i; p++) {
-        index[o_ind[p]] = -1;
-      }
-      for (unsigned int p = 0; p < p_K; p++) {
-        float val = 0.f;
-        const float* iGa = Ga.getRef(0, p);
-        for (int q = 0; q < i + 1; q++) {
-          val += iGa[q * p_K] * u[q];
-        }
+    //! Update norm1
+    thrs += step * coeff1;
+    cout << "test 6" << endl;
+    //! Choose next action
+    if (step == step_max) {
+      /// Downdate, remove first_zero
+      downdateGramMairal(Gs, invGs, Ga, o_ind, o_coeffs, i, first_zero);
 
-        if (index[p] > 0) {
-          if (val > -1.f) {
-            const float frac = fabs((current_correlation + io_DtR[p]) / (1.f + val));
-            if (frac < step) {
-              step       = frac;
-              currentInd = p;
-            }
-          }
-          if (val < 1.f) {
-            const float frac = fabs((current_correlation - io_DtR[p]) / (1.f - val));
-            if (frac < step) {
-              step       = frac;
-              currentInd = p;
-            }
-          }
-        }
-        values[p] = val;
-      }
-      cout << "test 4" << endl;
-      //! compute the coefficients of the polynome representing normX^2
-      float coeff1 = 0.f;
-      for (int j = 0; j <= i; j++) {
-        coeff1 += (io_DtR[o_ind[j]] > 0.f ? u[j] : -u[j]);
-      }
-      float coeff2 = 0.f;
-      for (int j = 0; j <= i; j++) {
-        coeff2 += io_DtR[o_ind[j]] * u[j];
-      }
-      float coeff3 = normX - p_lambda;
-      cout << "test 5" << endl;
-      float step_max2;
-      /// L2ERROR
-      const float delta = coeff2 * coeff2 - coeff1 * coeff3;
-      step_max2 = delta < 0.f ? infinity : (coeff2 - sqrt(delta)) / coeff1;
-      step_max2 = min(current_correlation, step_max2);
-      step      = min(min(step, step_max2), step_max);
-
-      //! Stop the path
-      if (step == infinity) {
+      newAtom = false;
+      i = i - 2;
+    }
+    else {
+      newAtom = true;
+    }
+    cout << "test 7" << endl;
+    if (iter >= lengthPath - 1       ||
+      fabs(step) < 1e-15             ||
+      fabs(step - step_max2) < 1e-15 ||
+      normX < 1e-15                  ||
+      i == (L - 1)                   ||
+      normX - p_lambda < 1e-15       ) {
         break;
-      }
-
-      //! Update coefficients
-      for (int p = 0; p < i + 1; p++) {
-        o_coeffs[p] += step * u[p];
-      }
-
-      //! Update correlations
-      for (unsigned int p = 0; p < p_K; p++) {
-        io_DtR[p] -= step * values[p];
-      }
-
-      //! Update normX
-      normX += coeff1 * step * step - 2.f * coeff2 * step;
-
-      //! Update norm1
-      thrs += step * coeff1;
-      cout << "test 6" << endl;
-      //! Choose next action
-      if (step == step_max) {
-        /// Downdate, remove first_zero
-        downdateGramMairal(Gs, invGs, Ga, o_ind, o_coeffs, i, first_zero);
-
-        newAtom = false;
-        i = i - 2;
-      }
-      else {
-        newAtom = true;
-      }
-      cout << "test 7" << endl;
-      if (iter >= lengthPath - 1       ||
-        fabs(step) < 1e-15             ||
-        fabs(step - step_max2) < 1e-15 ||
-        normX < 1e-15                  ||
-        i == (L - 1)                   ||
-        normX - p_lambda < 1e-15       ) {
-          break;
-      }
     }
+  }
 }
 
 
@@ -840,10 +850,15 @@ void updateGramMairal(
         cout << i_Gs(1,1) << endl;
         cout << p << endl;
         cout << "a" << endl;
+        unsigned mG, nG;
+        i_Gs.getSize(mG, nG);
+        cout << "size(i_Gs) = (" << mG << ", " << nG << ")" << endl;
+        cout << "p_iter = " << p_iter << ", p = " << p << endl;
+        cout << i_Gs(p_iter, p) << endl;
         const float value = iGs[p];
-        cout << "a" << endl;
+        cout << "b" << endl;
         float* iInvGs = io_invGs.getRef(p, 0);
-        cout << "a" << endl;
+        cout << "c" << endl;
         for (unsigned int q = 0; q < p_iter; q++) {
           if (p > q) {
             cout << "test <-" << endl;

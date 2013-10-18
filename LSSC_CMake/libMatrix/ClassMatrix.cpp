@@ -131,15 +131,14 @@ void Matrix::setTranspose(
   Matrix const& i_mat) {
 
   //! Initialization
-  Matrix A(i_mat);
-  (*this).setSize(A.m_col, A.m_row);
+  (*this).setSize(i_mat.m_col, i_mat.m_row);
 
   for (unsigned int i = 0; i < m_row; i++) {
-    float*       iM = &m_mat[i * m_col];
-    const float* iA = &A.m_mat[i];
+    float*       oM = &m_mat[i * m_col];
+    const float* iM = &i_mat.m_mat[i];
 
     for (unsigned int j = 0; j < m_col; j++) {
-      iM[j] = iA[j * m_row];
+      oM[j] = iM[j * m_row];
     }
   }
 }

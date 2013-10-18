@@ -338,6 +338,8 @@ void testLars(){
 
   //! Declarations
   vector<float> X(m * n, 0.f);
+  Matrix Xn(m, n);
+  Matrix An(p, n);
   Matrix D(m, p);
   vector<float> alpha(p, 0.f), A(p, 0.f);
 
@@ -355,6 +357,10 @@ void testLars(){
   X[1] = 0.13155995f;
   X[2] = 0.32178034f;
   X[3] = 0.73673994f;
+  const float factor = 2.5f; // To show that the norm of patches has no influence on crashes
+  for (unsigned int i = 0; i < m; i++) {
+    Xn(i, 0) = X[i] * factor;
+  }
   D(0, 0) = 0.99172287f; D(0, 1) = -0.53980467f; D(0, 2) = 0.71579501f;
   D(1, 0) = -0.0803747f; D(1, 1) = -0.05701349f; D(1, 2) = 0.30934422f;
   D(2, 0) = 0.07649096f; D(2, 1) =  0.80327576f; D(2, 2) = 0.57336454f;
@@ -369,11 +375,20 @@ void testLars(){
   }
 
   //! Run the LARS algorithm
-  computeLars(D, X, params, alpha);
+  //computeLars(D, X, params, alpha);
+  computeLarsMairal(Xn, D, An, n, params);
 
   //! Compare the result to the real one
-  for (unsigned int k = 0; k < p; k++) {
+  /*for (unsigned int k = 0; k < p; k++) {
     cout << alpha[k] << " (" << A[k] << ")" << endl;
+  }*/
+  cout << endl << "Results: " << endl;
+  for (unsigned int j = 0; j < n; j++) {
+    for (unsigned int i = 0; i < p; i++) {
+      if (fabs(An(i, j)) > 0.f) {
+        cout << "(" << i << "," << j << ") = " << An(i,j) / factor << endl;
+      }
+    }
   }
 }
 
@@ -391,8 +406,8 @@ int main(
         return EXIT_FAILURE;
     }
 
-    /*testLars();
-    return EXIT_SUCCESS;*/
+    //testLars();
+    //return EXIT_SUCCESS;
 
     //! Variables initialization
     const float sigma = float(atof(argv[2])) / 255.f;
@@ -405,13 +420,12 @@ int main(
     const bool verbose = true;
 
     //! Read Image
-    if (loadImage(argv[1], im, imSize, verbose) != EXIT_SUCCESS)
-    {
-        return EXIT_FAILURE;
+    if (loadImage(argv[1], im, imSize, verbose) != EXIT_SUCCESS) {
+      return EXIT_FAILURE;
     }
 
     //! The range intensity must be [0, 1] and convert to gray level
-    if(imSize.nChannels == 3){
+    if(imSize.nChannels == 3) {
       float* iR = &im[0];
       float* iG = &im[imSize.wh];
       float* iB = &im[imSize.wh * 2];
@@ -422,10 +436,10 @@ int main(
         iB[k] = mean / 255.f;
       }
     }
-    else{
-       for (unsigned int k = 0; k < imSize.wh; k++) {
-         im[k] /= 255.f;
-       }
+    else {
+      for (unsigned int k = 0; k < imSize.wh; k++) {
+        im[k] /= 255.f;
+      }
     }
 
     //! Add noise
@@ -441,18 +455,15 @@ int main(
     Matrix dict(params.m, params.k);
     ifstream txtDict(argv[9], ios::in);
 
-    for(unsigned int i = 0; i < params.m; i++)
-    {
-        for(unsigned int j = 0; j < params.k; j++)
-        {
-            txtDict >> dict(i, j);
-        }
+    for(unsigned int i = 0; i < params.m; i++) {
+      for(unsigned int j = 0; j < params.k; j++) {
+        txtDict >> dict(i, j);
+      }
     }
 
     //! TEST PART
     bool test = false;
-    if(test)
-    {
+    if(test) {
         display("----------------------------------------------", params);
         display("-------------------TEST-----------------------", params);
         testFunction(dict, params);
@@ -465,7 +476,8 @@ int main(
     //! number of random patches for dictionary update
     unsigned nRandomPatches = 10; //unsigned(floor(.2 * params.nPatch)); TODO: what could be this number ?
 
-    if(params.verbose){
+    if(params.verbose)
+    {
       cout << "Number of random patches: " << nRandomPatches << endl;
     }
 
