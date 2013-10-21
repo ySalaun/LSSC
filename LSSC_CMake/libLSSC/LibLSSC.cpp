@@ -19,9 +19,18 @@
 #include "LibLSSC.h"
 #include "utilities.h"
 
+const float INFINITY = std::numeric_limits<float>::max();
+
 #ifdef __linux__
 #include <math.h>
 #include <unistd.h>
+#endif
+#ifdef _WIN32
+#include <Windows.h>
+void sleep(unsigned milliseconds)
+{
+  Sleep(milliseconds);
+}
 #endif
 
 using namespace std;
@@ -77,7 +86,6 @@ void trainL1(
 
       Matrix patchMatrix(m, 1);
       for(unsigned int i = 0; i < m; i++){
-        //patchMatrix(i, 1) = patch[i]; //! NON !!!!!! on commence à 0, pas 1
         patchMatrix(i, 0) = patch[i];
       }
       Matrix alphaMatrix(k, 1);
@@ -85,9 +93,9 @@ void trainL1(
       computeLarsMairal(patchMatrix, io_dict, alphaMatrix, 1, p_params);
 
       for(unsigned int i = 0; i < k; i++){
-        //alpha[i] = alphaMatrix(i, 1); //! NON !!!!!!!!
         alpha[i] = alphaMatrix(i, 0);
       }
+
       //computeLars(io_dict, patch, p_params, alpha);
       // TODO debug mode
       /*if (p_params.debug) {
@@ -572,11 +580,8 @@ void computeLarsMairal(
   const Parameters &p_params){
 
   // TODO: are these the correct parameters
-  //const unsigned int p_m = 0; // useles ???? why here ?
   const unsigned int p_p = p_params.k;
-  //const unsigned int p_L = p_params.k; // not really sure ....
   const unsigned int p_L = p_p * p_n;
-  //const unsigned int p_lambda = p_params.reg; //! NON !!!! p_lambda est un float, pas un int !
   const float p_lambda = p_params.reg;
 
   //! Declarations
@@ -614,11 +619,8 @@ void computeLarsMairal(
     vector<float> coeffs(p_L);
     vector<float> DtR(p_p);
     DtX.getCol(DtR, i);
-    //cout << "i=" << i << endl;
     //! Call the core LARS function
-    //cout << "norms = " << norms[i] << endl;
     coreLarsMairal(DtR, G, coeffs, ind, norms[i], p_lambda, p_L, p_p);
-    //cout << "i=" << i << endl;
     //! Get results
     for (unsigned int j = 0; j < p_L; j++) {
       if (ind[j] >= 0) {
@@ -650,7 +652,7 @@ void coreLarsMairal(
   Matrix invGs  (p_L, p_L);
   vector<float> values(p_K);
   float normX = i_normX;
-  const float infinity = numeric_limits<float>::max();
+  const float infinity = INFINITY; //std::numeric_limits<float>::max();
   for (unsigned int k = 0; k < p_L; k++) {
     o_coeffs[k] = 0.f;
     o_ind   [k] = -1;
@@ -671,9 +673,7 @@ void coreLarsMairal(
     iter++;
     if (newAtom) {
       o_ind[i] = currentInd;
-      cout << "test a" << endl;
       Ga.copyRow(i_G, o_ind[i], i);
-      cout << "test b" << endl;
       const float* iGa = Ga.getRef(i, 0);
       float* iGs       = Gs.getRef(i, 0);
       for (int j = 0; j <= i; j++) {
@@ -683,7 +683,7 @@ void coreLarsMairal(
       //! Update inverse of Gs
       updateGramMairal(Gs, invGs, i);
     }
-    cout << "test 1" << endl;
+    cout << "updatGram works well" << endl;
     //! Compute the path direction
     for (int j = 0; j <= i; j++) {
       values[j] = (io_DtR[o_ind[j]] > 0.f ? 1.f : -1.f);
@@ -702,7 +702,7 @@ void coreLarsMairal(
       }
       u[p] = val;
     }
-    cout << "test 2" << endl;
+
     //! Compute the step on the path
     float step_max = infinity;
     int first_zero = -1;
@@ -713,7 +713,7 @@ void coreLarsMairal(
         first_zero = j;
       }
     }
-    cout << "test 3" << endl;
+
     const float current_correlation = fabs(io_DtR[o_ind[0]]);
     float step = infinity;
     vector<int> index (p_K, 1);
@@ -745,7 +745,7 @@ void coreLarsMairal(
       }
       values[p] = val;
     }
-    cout << "test 4" << endl;
+
     //! compute the coefficients of the polynome representing normX^2
     float coeff1 = 0.f;
     for (int j = 0; j <= i; j++) {
@@ -756,7 +756,7 @@ void coreLarsMairal(
       coeff2 += io_DtR[o_ind[j]] * u[j];
     }
     float coeff3 = normX - p_lambda;
-    cout << "test 5" << endl;
+
     float step_max2;
     /// L2ERROR
     const float delta = coeff2 * coeff2 - coeff1 * coeff3;
@@ -784,7 +784,7 @@ void coreLarsMairal(
 
     //! Update norm1
     thrs += step * coeff1;
-    cout << "test 6" << endl;
+
     //! Choose next action
     if (step == step_max) {
       /// Downdate, remove first_zero
@@ -796,7 +796,7 @@ void coreLarsMairal(
     else {
       newAtom = true;
     }
-    cout << "test 7" << endl;
+
     if (iter >= lengthPath - 1       ||
       fabs(step) < 1e-15             ||
       fabs(step - step_max2) < 1e-15 ||

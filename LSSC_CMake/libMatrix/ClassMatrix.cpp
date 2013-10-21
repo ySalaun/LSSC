@@ -125,6 +125,12 @@ float* Matrix::getRef(
   return &m_mat[p_i * m_col + p_j];
 }
 
+const float* Matrix::getRef(
+  const unsigned int p_i,
+  const unsigned int p_j) const {
+  return &m_mat[p_i * m_col + p_j];
+}
+
 
 //! Get the transpose of a matrix.
 void Matrix::setTranspose(

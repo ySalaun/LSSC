@@ -61,6 +61,10 @@ public :
     const unsigned int p_i,
     const unsigned int p_j);
 
+  const float* getRef(
+    const unsigned int p_i,
+    const unsigned int p_j) const;
+
   //! Set the transpose of a matrix.
   void setTranspose(
     Matrix const& i_mat);
